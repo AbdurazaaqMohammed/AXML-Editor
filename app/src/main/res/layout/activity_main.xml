@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000"
+    tools:context=".main.MainActivity"
+    tools:visibility="visible"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/editStuff"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:orientation="vertical">
+
+        <Button
+            android:id="@+id/encodeFromField"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/encode_from_field"
+            android:visibility="gone"/>
+
+        <LinearLayout
+            android:id="@+id/editBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <Button
+                android:id="@+id/button_prev"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="&lt;"/>
+
+            <EditText
+                android:id="@+id/editText_search"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:hint="@string/search"
+                android:textColor="#673AB7"
+                android:textColorHint="#673AB7"
+                android:ems="3"
+                android:inputType="text"
+                android:importantForAutofill="no"/>
+
+            <Button
+                android:id="@+id/button_search"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="&gt;"/>
+
+            <EditText
+                android:id="@+id/toReplace"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:hint="@string/replace"
+                android:textColor="#673AB7"
+                android:ems="3"
+                android:textColorHint="#673AB7"
+                android:inputType="text"
+                android:importantForAutofill="no"/>
+
+            <Button
+                android:id="@+id/button_rep"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🔁"/>
+
+            <Button
+                android:id="@+id/button_repAll"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/repAll"/>
+
+            <Button
+                android:id="@+id/dropdown_menu"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/menu_with_more_features"
+                android:text="⚙️" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:layout_alignParentBottom="true"
+        android:layout_below="@+id/editStuff">
+
+        <LinearLayout
+            android:id="@+id/linear1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:background="#000000"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/linear2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="8dp"
+                android:orientation="vertical">
+
+                <Button
+                    android:id="@+id/decodeButton"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/decode" />
+
+                <Button
+                    android:id="@+id/encodeButton"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/encode" />
+
+                <TextView
+                    android:id="@+id/oldAndroidInfo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="@string/oldAndroidInfo"
+                    android:visibility="gone"/>
+
+            </LinearLayout>
+
+            <EditText
+                android:id="@+id/workingFileField"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:ems="10"
+                android:inputType="text"
+                android:textColor="#673AB7"
+                android:textColorHint="#673AB7"
+                android:hint="@string/working_file"
+                android:importantForAutofill="no"/>
+
+            <Switch
+                android:id="@+id/doNotSaveDecodedSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:textSize="20sp"
+                android:text="@string/doNotSaveDecodedFiles"
+                android:textColor="#673AB7" />
+
+            <Switch
+                android:id="@+id/saveAsTxtSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:textSize="20sp"
+                android:text="@string/save_as_txt"
+                android:textColor="#673AB7" />
+
+            <Switch
+                android:id="@+id/replaceWithRegexSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:textSize="20sp"
+                android:text="@string/use_regex"
+                android:textColor="#673AB7" />
+
+            <TextView
+                android:id="@+id/errorField"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:textColor="#673AB7"
+                android:textIsSelectable="true"
+                android:visibility="gone"/>
+
+            <com.codyi96.xml2axml.ZoomableEditText
+                android:id="@+id/outputField"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textMultiLine"
+                android:textColor="#673AB7"
+                android:hint="@string/output"/>
+
+        </LinearLayout>
+    </ScrollView>
+</RelativeLayout>

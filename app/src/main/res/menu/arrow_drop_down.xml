@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+        <item android:id="@+id/fix"
+            android:title="@string/remove_useless_info" />
+        <item android:id="@+id/regex"
+            android:title="@string/use_regex"/>
+        <item android:id="@+id/caseSensitive"
+            android:title="@string/case_sensitive"/>
+</menu>

@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">AXML Editor</string>
+    <string name="encode">Encode</string>
+    <string name="decode">Decode</string>
+    <string name="save_as_txt">Decode to .txt instead of .xml for compatibility with text editors</string>
+    <string name="oldAndroidInfo">Note: Your version of Android is too old to use the file picker. You have to input the location of the file manually. The files will be saved to Download folder in the internal storage.</string>
+    <string name="working_file">Working file</string>
+    <string name="select_folder_for_output">Select folder for output</string>
+    <string name="encode_from_field">Encode from field</string>
+    <string name="search">Search</string>
+    <string name="replace">Replace</string>
+    <string name="repAll">all</string>
+    <string name="doNotSaveDecodedFiles">Don\'t save decoded file; just open it for editing here</string>
+    <string name="use_regex">Use regex for search and replacement</string>
+    <string name="menu_with_more_features">Menu with more features</string>
+    <string name="remove_useless_info">Remove useless info (splits, assetPack, derived apk id)</string>
+    <string name="case_sensitive">Case sensitive</string>
+    <string name="useless_info">Warning: Useless info (splits, assetPack, derived apk id) was detected in the manifest. These elements can cause an "App not installed error" on some devices, so it is recommended to remove them. There is an option inbuilt in the settings menu to do this.</string>
+    <string name="output">Output</string>
+</resources>
