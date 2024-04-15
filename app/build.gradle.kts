@@ -33,6 +33,5 @@ android {
     }
 }
 dependencies {
-    implementation("commons-io:commons-io:2.11.0")
     testImplementation("junit:junit:4.13.2")
 }
