@@ -171,18 +171,55 @@ public class MainActivity extends Activity {
                     return true;
                 } else if (id == R.id.fix) {
                     EditText output = findViewById(R.id.outputField);
-                    output.setText(output.getText().toString().replaceAll("<[^>]*(assetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id)[^>]*(.*\n.*/.*>|>)", ""));
+                    output.setText(output.getText().toString().replaceAll("<[^>]*(assetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id|PlayCoreDialog)[^>]*(.*\n.*/.*>|>)", "").replaceAll("<\\/service>\n\n", "").replace("isSplitRequired=\"true", "isSplitRequired=\"false").replaceAll("splitTypes=\".*\"", ""));
                     return true;
                 } else if (id == R.id.caseSensitive) {
                     caseSensitive = !caseSensitive;
+                    return true;
+                } else if (id == R.id.goToBottom) {
+                    EditText output = findViewById(R.id.outputField);
+                    if (!output.isFocused()) output.requestFocus();
+                    output.setSelection(output.getText().length(), output.getText().length());
+                    return true;
+                } else if (id == R.id.goToTop) {
+                    EditText output = findViewById(R.id.outputField);
+                    if (!output.isFocused()) output.requestFocus();
+                    output.setSelection(1, 1);
                     return true;
                 }
                 return false;
             });
             popup.show();
         });
+
+        if (Intent.ACTION_SEND.equals(getIntent().getAction())) {
+            Uri sharedUri = getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
+            if (sharedUri != null) {
+                try {
+                    decodeSharedFile(sharedUri);
+                } catch (IOException | XmlPullParserException e) {
+                    e.printStackTrace();
+                    Toast.makeText(this, "Error occurred while decoding shared file", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
     }
 
+    private void decodeSharedFile(Uri sharedUri) throws IOException, XmlPullParserException {
+        is = getContentResolver().openInputStream(sharedUri);
+
+        final String decodedXML = new aXMLDecoder().decode(is).trim();
+
+        EditText outputField = findViewById(R.id.outputField);
+        outputField.setText(decodedXML);
+
+        if (!doNotSaveDecodedFile) {
+            callSaveFileResultLauncherForPlainTextData();
+        }
+
+        findViewById(R.id.encodeFromField).setVisibility(View.VISIBLE);
+        findViewById(R.id.editBar).setVisibility(View.VISIBLE);
+    }
 
     @Override
     protected void onPause() {
