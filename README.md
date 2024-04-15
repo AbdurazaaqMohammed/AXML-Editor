@@ -11,7 +11,11 @@ There are already several apps that perform this task, but they all have some pr
 
 AEE and Modder Hub also inherit an issue from axml2xml where XML files that contain large integers will fail to be encoded. The fix was implemented in AEE but Integer.parseInt is called before checking if the value is too big so it still crashes (this should be fixed soon)
 
-## Todo
+# Todo
 * make it actually work on SDK<19
-* support parsing xml files from an apk (List all xml files in the apk to the user for selection)
-* add button to go to top/bottom of text
+* support parsing all xml files from an apk (List all xml files in the apk to the user for selection)
+* Ensure edit bar is fully visible on all screens
+
+## Done
+* added buttons to go to top/bottom of text (In settings menu)
+* support selecting an apk and editing AndroidManifest.xml from it
