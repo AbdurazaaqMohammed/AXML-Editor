@@ -8,7 +8,7 @@ There are already several apps that perform this task, but they all have some pr
 * NP Manager - closed source Chinese app with tracking
 * MT Manager - requires VIP (paid)
 * Modder Hub - closed source
-* 
+
 AEE and Modder Hub also inherit an issue from axml2xml where XML files that contain large integers will fail to be encoded. The fix was implemented in AEE but Integer.parseInt is called before checking if the value is too big so it still crashes (this should be fixed soon)
 
 ## Todo
