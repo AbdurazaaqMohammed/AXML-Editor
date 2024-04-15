@@ -22,7 +22,9 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
+import java.io.BufferedReader;
 import java.io.FileOutputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 
 import com.codyi96.xml2axml.Encoder;
@@ -48,6 +50,7 @@ public class MainActivity extends Activity {
     private boolean doNotSaveDecodedFile;
     private boolean useRegex;
     private boolean caseSensitive;
+    private boolean fromShare = false;
     private boolean encodeFromTextField = false;
     private final boolean isOldAndroid = Build.VERSION.SDK_INT<19;
     private InputStream is;
@@ -193,32 +196,72 @@ public class MainActivity extends Activity {
         });
 
         if (Intent.ACTION_SEND.equals(getIntent().getAction())) {
+            fromShare = true;
             Uri sharedUri = getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
-            if (sharedUri != null) {
-                try {
-                    decodeSharedFile(sharedUri);
-                } catch (IOException | XmlPullParserException e) {
-                    e.printStackTrace();
-                    Toast.makeText(this, "Error occurred while decoding shared file", Toast.LENGTH_SHORT).show();
-                }
-            }
+            if (sharedUri != null) processSharedFile(sharedUri);
         }
     }
 
-    private void decodeSharedFile(Uri sharedUri) throws IOException, XmlPullParserException {
-        is = getContentResolver().openInputStream(sharedUri);
+    private void processSharedFile(Uri sharedUri) {
+        try {
+            final String mimeType = getApplicationContext().getContentResolver().getType(sharedUri);
 
-        final String decodedXML = new aXMLDecoder().decode(is).trim();
+            if (mimeType.startsWith("app")) {
+                InputStream zipInputStream = getContentResolver().openInputStream(sharedUri);
+                is = ZipUtils.getAndroidManifestInputStreamFromZip(zipInputStream);
+                decode();
+            } else {
+                is = getContentResolver().openInputStream(sharedUri);
 
-        EditText outputField = findViewById(R.id.outputField);
-        outputField.setText(decodedXML);
-
-        if (!doNotSaveDecodedFile) {
-            callSaveFileResultLauncherForPlainTextData();
+                BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                // Check if the file should be encoded or decoded
+                if (mimeType.endsWith("plain") || br.readLine().startsWith("<?xml version")) {
+                    EditText output = findViewById(R.id.outputField);
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        output.setText(output.getText().toString() + "\n" + line);
+                    }
+                    findViewById(R.id.encodeFromField).setVisibility(View.VISIBLE);
+                    findViewById(R.id.editBar).setVisibility(View.VISIBLE);
+                }
+                else decode();
+            }
+        } catch (IOException e) {
+            TextView errorBox = findViewById(R.id.errorField);
+            errorBox.setVisibility(View.VISIBLE);
+            final String error = e.toString();
+            errorBox.setText(error);
+            Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
         }
+    }
+    private void decode() {
+        try {
+            final String decodedXML = new aXMLDecoder().decode(is).trim();
 
-        findViewById(R.id.encodeFromField).setVisibility(View.VISIBLE);
-        findViewById(R.id.editBar).setVisibility(View.VISIBLE);
+            EditText outputField = findViewById(R.id.outputField);
+            if (!doNotSaveDecodedFile) {
+                callSaveFileResultLauncherForPlainTextData();
+            }
+
+            outputField.setText(decodedXML);
+
+            if (decodedXML.contains("assetpack") || decodedXML.contains("MissingSplit") || decodedXML.contains("com.android.dynamic.apk.fused.modules") || decodedXML.contains("com.android.stamp.source") || decodedXML.contains("com.android.stamp.type") || decodedXML.contains("com.android.vending.splits") || decodedXML.contains("com.android.vending.derived.apk.id")) {
+                TextView errorBox = findViewById(R.id.errorField);
+                errorBox.setVisibility(View.VISIBLE);
+                final String error = getString(R.string.useless_info);
+                errorBox.setText(error);
+                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+            }
+
+            findViewById(R.id.encodeFromField).setVisibility(View.VISIBLE);
+            findViewById(R.id.editBar).setVisibility(View.VISIBLE);
+        } catch (IOException | XmlPullParserException e) {
+            TextView errorBox = findViewById(R.id.errorField);
+            errorBox.setVisibility(View.VISIBLE);
+            final String error = e.toString();
+            errorBox.setText(error);
+            Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -337,8 +380,11 @@ public class MainActivity extends Activity {
                         inputStream.close();
                     }
                 } catch (IOException e) {
-                    e.printStackTrace();
-                    Toast.makeText(this, "Error occurred", Toast.LENGTH_SHORT).show();
+                    TextView errorBox = findViewById(R.id.errorField);
+                    errorBox.setVisibility(View.VISIBLE);
+                    final String error = e.toString();
+                    errorBox.setText(error);
+                    Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
                 }
             }
         } else {
@@ -346,8 +392,7 @@ public class MainActivity extends Activity {
             intent.addCategory(Intent.CATEGORY_OPENABLE);
 
             intent.setType("*/*");
-            intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] { "text/plain", "text/xml"});
-            //"application/vnd.android.package-archive",
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"application/vnd.android.package-archive", "application/zip", "text/plain", "text/xml"});
             startActivityForResult(intent, requestCode);
         }
     }
@@ -368,14 +413,15 @@ public class MainActivity extends Activity {
             Uri uri = data.getData();
             if (uri != null) {
                 EditText outputField = findViewById(R.id.outputField);
-                TextView t = findViewById(R.id.workingFileField);
-                t.setText(uri.getPath());
+                TextView workingFileField = findViewById(R.id.workingFileField);
+                workingFileField.setText(uri.getPath());
                 try {
-
                     switch (requestCode) {
                         case REQUEST_CODE_DECODE_XML:
-                            is = getContentResolver().openInputStream(uri);
-
+                            if(getApplicationContext().getContentResolver().getType(uri).startsWith("app")) {
+                                InputStream zipInputStream = getContentResolver().openInputStream(uri);
+                                is = ZipUtils.getAndroidManifestInputStreamFromZip(zipInputStream);
+                            } else is = getContentResolver().openInputStream(uri);
                             final String decodedXML = new aXMLDecoder().decode(is).trim();
                             if(!doNotSaveDecodedFile) callSaveFileResultLauncherForPlainTextData();
                             outputField.setText(decodedXML);
