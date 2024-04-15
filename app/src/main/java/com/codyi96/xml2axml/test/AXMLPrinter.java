@@ -15,8 +15,10 @@
  */
 package com.codyi96.xml2axml.test;
 
-import com.codyi96.xml2axml.android.content.res.AXmlResourceParser;
 import android.util.TypedValue;
+
+import com.apk.axml.utils.AXmlResourceParser;
+
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
