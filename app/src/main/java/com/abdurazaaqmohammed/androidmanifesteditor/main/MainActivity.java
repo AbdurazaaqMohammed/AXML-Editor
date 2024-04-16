@@ -180,7 +180,7 @@ public class MainActivity extends Activity {
                     return true;
                 } else if (id == R.id.fix) {
                     EditText output = findViewById(R.id.outputField);
-                    output.setText(output.getText().toString().replaceAll("<[^>]*(AssetPackassetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id|PlayCoreDialog)[^>]*(.*\n.*/.*>|>)", "").replaceAll("<\\/service>\n\n", "").replace("isSplitRequired=\"true", "isSplitRequired=\"false").replaceAll("splitTypes=\".*\"", "").trim());
+                    output.setText(output.getText().toString().replaceAll("<[^>]*(AssetPack|assetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id|PlayCoreDialog)[^>]*(.*\n.*/.*>|>)", "").replaceAll("<\\/service>\n\n", "").replace("isSplitRequired=\"true", "isSplitRequired=\"false").replaceAll("splitTypes=\".*\"", "").trim());
                     return true;
                 } else if (id == R.id.caseSensitive) {
                     caseSensitive = !caseSensitive;
