@@ -6,4 +6,10 @@
             android:title="@string/use_regex"/>
         <item android:id="@+id/caseSensitive"
             android:title="@string/case_sensitive"/>
+        <item android:id="@+id/goToTop"
+            android:title="@string/go_to_top"/>
+        <item android:id="@+id/goToBottom"
+            android:title="@string/go_to_bottom"/>
+        <item android:id="@+id/saveDecoded"
+            android:title="@string/save_decoded_xml"/>
 </menu>
