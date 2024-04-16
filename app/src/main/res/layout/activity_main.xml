@@ -35,6 +35,8 @@
                 android:id="@+id/button_prev"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minHeight="0dp"
+                android:minWidth="0dp"
                 android:text="&lt;"/>
 
             <EditText
@@ -52,7 +54,9 @@
                 android:id="@+id/button_search"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="&gt;"/>
+                android:minHeight="0dp"
+                android:minWidth="0dp"
+                :text="&gt;"/>
 
             <EditText
                 android:id="@+id/toReplace"
@@ -69,6 +73,8 @@
                 android:id="@+id/button_rep"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minHeight="0dp"
+                android:minWidth="0dp"
                 android:text="🔁"/>
 
             <Button
@@ -127,6 +133,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="48dp"
                     android:layout_weight="1"
+                    android:textColor="#673AB7"
                     android:text="@string/oldAndroidInfo"
                     android:visibility="gone"/>
 
@@ -149,14 +156,6 @@
                 android:layout_height="48dp"
                 android:textSize="20sp"
                 android:text="@string/doNotSaveDecodedFiles"
-                android:textColor="#673AB7" />
-
-            <Switch
-                android:id="@+id/saveAsTxtSwitch"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textSize="20sp"
-                android:text="@string/save_as_txt"
                 android:textColor="#673AB7" />
 
             <Switch
