@@ -22,7 +22,10 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -35,6 +38,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class MainActivity extends Activity {
 
@@ -46,11 +51,9 @@ public class MainActivity extends Activity {
     private static final int REQUEST_CODE_SAVE_DECODED_XML_FROM_STRING = 5;
 
     // Declaration of variables
-    private boolean saveAsTxt;
     private boolean doNotSaveDecodedFile;
     private boolean useRegex;
     private boolean caseSensitive;
-    private boolean fromShare = false;
     private boolean encodeFromTextField = false;
     private final boolean isOldAndroid = Build.VERSION.SDK_INT<19;
     private InputStream is;
@@ -65,7 +68,6 @@ public class MainActivity extends Activity {
         SharedPreferences settings = getSharedPreferences("set", Context.MODE_PRIVATE);
 
         // Fetch settings from SharedPreferences
-        saveAsTxt = settings.getBoolean("saveAsTxt", false);
         useRegex = settings.getBoolean("useRegex", false);
         doNotSaveDecodedFile = settings.getBoolean("doNotSaveDecodedFile", false);
         caseSensitive = settings.getBoolean("caseSensitive", false);
@@ -74,9 +76,6 @@ public class MainActivity extends Activity {
         Switch useRegexSwitch = findViewById(R.id.replaceWithRegexSwitch);
         useRegexSwitch.setChecked(useRegex);
         useRegexSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> useRegex = isChecked);
-        Switch saveAsTxtSwitch = findViewById(R.id.saveAsTxtSwitch);
-        saveAsTxtSwitch.setChecked(saveAsTxt);
-        saveAsTxtSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> saveAsTxt = isChecked);
         Switch dontSaveDecodedSwitch = findViewById(R.id.doNotSaveDecodedSwitch);
         dontSaveDecodedSwitch.setChecked(doNotSaveDecodedFile);
         dontSaveDecodedSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> doNotSaveDecodedFile = isChecked);
@@ -101,7 +100,7 @@ public class MainActivity extends Activity {
         buttonSearch.setOnClickListener(v -> {
             String searchQuery = caseSensitive ? editTextSearch.getText().toString() : editTextSearch.getText().toString().toLowerCase();
             EditText output = findViewById(R.id.outputField);
-            String outputText = output.getText().toString().toLowerCase();
+            String outputText =  caseSensitive ? output.getText().toString() : output.getText().toString().toLowerCase();
             if (!findText(searchQuery, outputText))
                 Toast.makeText(MainActivity.this, "Text not found", Toast.LENGTH_SHORT).show();
         });
@@ -113,37 +112,41 @@ public class MainActivity extends Activity {
         buttonPrev.setOnClickListener(v -> {
             String searchQuery = caseSensitive ? editTextSearch.getText().toString() : editTextSearch.getText().toString().toLowerCase();
             EditText output = findViewById(R.id.outputField);
-            String outputText = output.getText().toString().toLowerCase();
+            String outputText =  caseSensitive ? output.getText().toString() : output.getText().toString().toLowerCase();
             if (!findPreviousText(searchQuery, outputText))
                 Toast.makeText(MainActivity.this, "Text not found", Toast.LENGTH_SHORT).show();
         });
-
         buttonReplace.setOnClickListener(v -> {
-            String searchQuery = caseSensitive ? editTextSearch.getText().toString() : editTextSearch.getText().toString().toLowerCase();
+            String searchQuery = editTextSearch.getText().toString();
+            if (!useRegex) searchQuery = escapeRegex(searchQuery);
+            if (!caseSensitive) searchQuery = convertToUniversalCase(searchQuery);
             String replacementText = textToReplaceWith.getText().toString();
 
             EditText output = findViewById(R.id.outputField);
-            String outputText = caseSensitive ? output.getText().toString() : output.getText().toString().toLowerCase();
+            String outputText = output.getText().toString();
 
+            Pattern pattern = Pattern.compile(searchQuery);
+            Matcher matcher = pattern.matcher(outputText);
             int startPos = output.getSelectionEnd();
-            int foundPos = outputText.indexOf(searchQuery, startPos);
+            if (matcher.find(startPos)) {
+                int start = matcher.start();
+                int end = matcher.end();
 
-            if (foundPos != -1) {
-                // Replace the found text with the replacement text
-                outputText = useRegex ? outputText.replaceFirst(searchQuery, replacementText) :
-                        (outputText.substring(0, foundPos) + replacementText +
-                                outputText.substring(foundPos + searchQuery.length()));
+                outputText = outputText.substring(0, start) + replacementText + outputText.substring(end);
                 output.setText(outputText);
-                output.setSelection(foundPos, foundPos + replacementText.length());
+
+                output.setSelection(start, start + replacementText.length());
             } else {
                 // Wrap around and search from the beginning if not found after reaching the end
-                foundPos = outputText.indexOf(searchQuery);
-                if (foundPos != -1) {
-                    outputText = useRegex ? outputText.replaceFirst(searchQuery, replacementText) :
-                            (outputText.substring(0, foundPos) + replacementText +
-                                    outputText.substring(foundPos + searchQuery.length()));
+                matcher.reset(); // Reset matcher to search from the beginning
+                if (matcher.find()) {
+                    int start = matcher.start();
+                    int end = matcher.end();
+
+                    outputText = outputText.substring(0, start) + replacementText + outputText.substring(end);
                     output.setText(outputText);
-                    output.setSelection(foundPos, foundPos + replacementText.length());
+
+                    output.setSelection(start, start + replacementText.length());
                 } else {
                     Toast.makeText(MainActivity.this, "Text not found", Toast.LENGTH_SHORT).show();
                 }
@@ -152,19 +155,22 @@ public class MainActivity extends Activity {
 
         Button buttonReplaceAll = findViewById(R.id.button_repAll);
         buttonReplaceAll.setOnClickListener(v -> {
-            String searchQuery = caseSensitive ? editTextSearch.getText().toString() : editTextSearch.getText().toString().toLowerCase();
+            String searchQuery = editTextSearch.getText().toString();
+            if (!useRegex) searchQuery = escapeRegex(searchQuery);
+            if (!caseSensitive) searchQuery = convertToUniversalCase(searchQuery);
+
             String replacementText = textToReplaceWith.getText().toString();
             EditText output = findViewById(R.id.outputField);
-            String outputText = caseSensitive ? output.getText().toString() : output.getText().toString().toLowerCase();
-            output.setText(useRegex ? outputText.replaceAll(searchQuery, replacementText) : outputText.replace(searchQuery, replacementText));
+            String outputText = output.getText().toString();
+            output.setText(outputText.replaceAll(searchQuery, replacementText));
         });
 
         // Configure settings menu
         findViewById(R.id.dropdown_menu).setOnClickListener(v -> {
             PopupMenu popup = new PopupMenu(this, v);
             popup.getMenuInflater().inflate(R.menu.arrow_drop_down, popup.getMenu());
-            popup.getMenu().findItem(R.id.regex).setTitle(getString(R.string.use_regex) + " (" + (useRegex ? "on" : "off") + ")");
-            popup.getMenu().findItem(R.id.caseSensitive).setTitle(getString(R.string.case_sensitive) + " (" + (caseSensitive ? "on" : "off") + ")");
+            popup.getMenu().findItem(R.id.regex).setTitle("(" + (useRegex ? "on" : "off") + ") " + getString(R.string.use_regex));
+            popup.getMenu().findItem(R.id.caseSensitive).setTitle("(" + (caseSensitive ? "on" : "off") + ") " + getString(R.string.case_sensitive));
             popup.setOnMenuItemClickListener(menuItem -> {
                 final int id = menuItem.getItemId();
 
@@ -174,7 +180,7 @@ public class MainActivity extends Activity {
                     return true;
                 } else if (id == R.id.fix) {
                     EditText output = findViewById(R.id.outputField);
-                    output.setText(output.getText().toString().replaceAll("<[^>]*(assetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id|PlayCoreDialog)[^>]*(.*\n.*/.*>|>)", "").replaceAll("<\\/service>\n\n", "").replace("isSplitRequired=\"true", "isSplitRequired=\"false").replaceAll("splitTypes=\".*\"", ""));
+                    output.setText(output.getText().toString().replaceAll("<[^>]*(AssetPackassetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id|PlayCoreDialog)[^>]*(.*\n.*/.*>|>)", "").replaceAll("<\\/service>\n\n", "").replace("isSplitRequired=\"true", "isSplitRequired=\"false").replaceAll("splitTypes=\".*\"", "").trim());
                     return true;
                 } else if (id == R.id.caseSensitive) {
                     caseSensitive = !caseSensitive;
@@ -189,6 +195,12 @@ public class MainActivity extends Activity {
                     if (!output.isFocused()) output.requestFocus();
                     output.setSelection(1, 1);
                     return true;
+                } else if (id == R.id.saveDecoded) {
+                    callSaveFileResultLauncherForPlainTextData();
+                    return true;
+                } else if (id == R.id.mergeActivities) {
+
+                    return true;
                 }
                 return false;
             });
@@ -196,26 +208,81 @@ public class MainActivity extends Activity {
         });
 
         if (Intent.ACTION_SEND.equals(getIntent().getAction())) {
-            fromShare = true;
             Uri sharedUri = getIntent().getParcelableExtra(Intent.EXTRA_STREAM);
             if (sharedUri != null) processSharedFile(sharedUri);
         }
     }
 
+    private InputStream getAndroidManifestInputStreamFromZip(InputStream zipInputStream) throws IOException {
+        ZipInputStream zipInput = new ZipInputStream(new BufferedInputStream(zipInputStream));
+        ZipEntry entry;
+        while ((entry = zipInput.getNextEntry()) != null) {
+            if (entry.getName().equals("AndroidManifest.xml")) {
+                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = zipInput.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, length);
+                }
+                zipInput.close();
+                return new ByteArrayInputStream(outputStream.toByteArray());
+            } else if (entry.getName().equals("base.apk")) return getAndroidManifestInputStreamFromZip(zipInput); // Somehow this works on xapk files even though base.apk is renamed to the app package name
+            zipInput.closeEntry();
+        }
+        zipInput.close();
+
+        // AndroidManifest.xml not found in the zip file
+        return null;
+    }
+    private String escapeRegex(String input) {
+        // List of characters that need to be escaped in a regex
+        String specialChars = "\\[]{}()^$|*+?.";
+
+        StringBuilder escapedString = new StringBuilder();
+
+        for (char c : input.toCharArray()) {
+            // Check if the character is a special character
+            if (specialChars.indexOf(c) != -1) {
+                // Escape the special character by adding a backslash before it
+                escapedString.append("\\").append(c);
+            } else {
+                // Otherwise, just append the character as is
+                escapedString.append(c);
+            }
+        }
+
+        return escapedString.toString();
+    }
+    private String convertToUniversalCase(String input) {
+        StringBuilder regexBuilder = new StringBuilder();
+
+        for (char c : input.toCharArray()) {
+            if (Character.isLetter(c)) {
+                regexBuilder.append("[");
+                regexBuilder.append(Character.toLowerCase(c));
+                regexBuilder.append(Character.toUpperCase(c));
+                regexBuilder.append("]");
+            } else {
+                regexBuilder.append(c);
+            }
+        }
+
+        return regexBuilder.toString();
+    }
     private void processSharedFile(Uri sharedUri) {
         try {
             final String mimeType = getApplicationContext().getContentResolver().getType(sharedUri);
 
             if (mimeType.startsWith("app")) {
                 InputStream zipInputStream = getContentResolver().openInputStream(sharedUri);
-                is = ZipUtils.getAndroidManifestInputStreamFromZip(zipInputStream);
+                is = getAndroidManifestInputStreamFromZip(zipInputStream);
                 decode();
             } else {
                 is = getContentResolver().openInputStream(sharedUri);
 
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
                 // Check if the file should be encoded or decoded
-                if (mimeType.endsWith("plain") || br.readLine().startsWith("<?xml version")) {
+                if (mimeType.endsWith("plain")) {
                     EditText output = findViewById(R.id.outputField);
                     String line;
                     while ((line = br.readLine()) != null) {
@@ -237,7 +304,7 @@ public class MainActivity extends Activity {
     private void decode() {
         try {
             final String decodedXML = new aXMLDecoder().decode(is).trim();
-
+            boolean realRegexValue;
             EditText outputField = findViewById(R.id.outputField);
             if (!doNotSaveDecodedFile) {
                 callSaveFileResultLauncherForPlainTextData();
@@ -245,13 +312,16 @@ public class MainActivity extends Activity {
 
             outputField.setText(decodedXML);
 
-            if (decodedXML.contains("assetpack") || decodedXML.contains("MissingSplit") || decodedXML.contains("com.android.dynamic.apk.fused.modules") || decodedXML.contains("com.android.stamp.source") || decodedXML.contains("com.android.stamp.type") || decodedXML.contains("com.android.vending.splits") || decodedXML.contains("com.android.vending.derived.apk.id")) {
+            realRegexValue = useRegex;
+            useRegex = true;
+            if(findText("PlayCoreDialog|AssetPack|assetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id", decodedXML)) {
                 TextView errorBox = findViewById(R.id.errorField);
                 errorBox.setVisibility(View.VISIBLE);
                 final String error = getString(R.string.useless_info);
                 errorBox.setText(error);
                 Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
             }
+            useRegex = realRegexValue;
 
             findViewById(R.id.encodeFromField).setVisibility(View.VISIBLE);
             findViewById(R.id.editBar).setVisibility(View.VISIBLE);
@@ -267,7 +337,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         final SharedPreferences settings = getSharedPreferences("set", Context.MODE_PRIVATE);
-        settings.edit().putBoolean("useRegex", useRegex).putBoolean("doNotSaveDecodedFile", doNotSaveDecodedFile).putBoolean("saveAsTxt", saveAsTxt).putBoolean("caseSensitive", caseSensitive).apply();
+        settings.edit().putBoolean("useRegex", useRegex).putBoolean("doNotSaveDecodedFile", doNotSaveDecodedFile).putBoolean("caseSensitive", caseSensitive).apply();
         super.onPause();
     }
 
@@ -390,21 +460,21 @@ public class MainActivity extends Activity {
         } else {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
-
             intent.setType("*/*");
-            intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"application/vnd.android.package-archive", "application/zip", "text/plain", "text/xml"});
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"application/vnd.android.package-archive", "application/zip", "application/octet-stream", "text/plain", "text/xml"}); // XAPK is octet-stream
             startActivityForResult(intent, requestCode);
         }
     }
 
     private void callSaveFileResultLauncherForPlainTextData() {
-        String fileName = "decoded" ;
+        String fileName = "decoded";
         Intent saveFileIntent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         saveFileIntent.addCategory(Intent.CATEGORY_OPENABLE);
-        saveFileIntent.setType(saveAsTxt ? "text/plain" : "text/xml");
+        saveFileIntent.setType("text/plain");
         saveFileIntent.putExtra(Intent.EXTRA_TITLE, fileName);
         startActivityForResult(saveFileIntent, REQUEST_CODE_SAVE_DECODED_XML_FROM_STRING);
     }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -418,21 +488,34 @@ public class MainActivity extends Activity {
                 try {
                     switch (requestCode) {
                         case REQUEST_CODE_DECODE_XML:
-                            if(getApplicationContext().getContentResolver().getType(uri).startsWith("app")) {
+                            boolean realRegexValue;
+                            final String mimeType = getApplicationContext().getContentResolver().getType(uri);
+                            if (mimeType.startsWith("app")) {
                                 InputStream zipInputStream = getContentResolver().openInputStream(uri);
-                                is = ZipUtils.getAndroidManifestInputStreamFromZip(zipInputStream);
+                                is = getAndroidManifestInputStreamFromZip(zipInputStream);
                             } else is = getContentResolver().openInputStream(uri);
-                            final String decodedXML = new aXMLDecoder().decode(is).trim();
-                            if(!doNotSaveDecodedFile) callSaveFileResultLauncherForPlainTextData();
-                            outputField.setText(decodedXML);
-
-                            if(decodedXML.contains("assetpack") || decodedXML.contains("MissingSplit") || decodedXML.contains("com.android.dynamic.apk.fused.modules") || decodedXML.contains("com.android.stamp.source") || decodedXML.contains("com.android.stamp.type") || decodedXML.contains("com.android.vending.splits") || decodedXML.contains("com.android.vending.derived.apk.id")) {
+                            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                            String content = "";
+                            if (mimeType.endsWith("plain")) {
+                                String line;
+                                while ((line = br.readLine()) != null) {
+                                    content = content + "\n" + line;
+                                }
+                            } else {
+                                content = new aXMLDecoder().decode(is).trim();
+                                if (!doNotSaveDecodedFile) callSaveFileResultLauncherForPlainTextData();
+                            }
+                            outputField.setText(content);
+                            realRegexValue = useRegex;
+                            useRegex = true;
+                            if(findText("PlayCoreDialog|AssetPack|assetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id", content)) {
                                 TextView errorBox = findViewById(R.id.errorField);
                                 errorBox.setVisibility(View.VISIBLE);
                                 final String error = getString(R.string.useless_info);
                                 errorBox.setText(error);
                                 Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
                             }
+                            useRegex = realRegexValue;
                             findViewById(R.id.encodeFromField).setVisibility(View.VISIBLE);
                             findViewById(R.id.editBar).setVisibility(View.VISIBLE);
                             break;
@@ -456,9 +539,8 @@ public class MainActivity extends Activity {
                         case REQUEST_CODE_SAVE_ENCODED_XML:
                             final String fromTextField = outputField.getText().toString();
 
-                            FileOutputStream fos = (FileOutputStream) getContentResolver().openOutputStream(uri);
                             byte[] encodedData;
-                            if(encodeFromTextField && !fromTextField.isEmpty()) {
+                            if (encodeFromTextField && !fromTextField.isEmpty()) {
                                 encodedData = new aXMLEncoder().encodeString(this, fromTextField);
                             } else {
                                 // If encoding from file the input stream will be the decoded XML
@@ -469,6 +551,7 @@ public class MainActivity extends Activity {
                                 encodedData = Encoder.encode(getApplicationContext(), parser);
                             }
 
+                            FileOutputStream fos = (FileOutputStream) getContentResolver().openOutputStream(uri);
                             fos.write(encodedData);
                             fos.close();
                             Toast.makeText(this, "XML encoded and saved successfully", Toast.LENGTH_SHORT).show();
