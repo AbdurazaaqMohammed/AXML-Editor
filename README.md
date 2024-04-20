@@ -16,6 +16,8 @@ AEE and Modder Hub also inherit an issue from axml2xml where XML files that cont
 * Support parsing all xml files from an apk (List all xml files in the apk to the user for selection)
   * (Add setting to always just open AndroidManifest)
 * Ensure edit bar is fully visible on all screens
+* Add option to save APK with the updated manifest if an APK file was selected.
+* Add line numbers
 
 ## Done
 * Added buttons (in settings menu) to jump to the top/bottom of text
