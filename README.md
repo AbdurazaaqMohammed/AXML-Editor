@@ -1,4 +1,4 @@
-Android app to edit android binary XML files (AndroidManifest.xml and layout XML files) without having to decompile all resources
+Android app to edit AXML - Android binary XML files (AndroidManifest.xml and layout XML files) without having to decompile all resources
 
 This project is a simple GUI implementation of axml2xml by [apk-editor](https://github.com/apk-editor/aXML), [codyi96](https://github.com/codyi96/xml2axml), [hzw1199](https://github.com/hzw1199/xml2axml) and [l741589](https://github.com/l741589/xml2axml).
 It has an inbuilt text editor with search and replace (supports regex and case sensitivity).
