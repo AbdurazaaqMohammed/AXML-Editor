@@ -87,6 +87,7 @@
                 android:id="@+id/dropdown_menu"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:background="#141414"
                 android:contentDescription="@string/menu_with_more_features"
                 android:text="⚙️" />
         </LinearLayout>
@@ -164,6 +165,14 @@
                 android:layout_height="48dp"
                 android:textSize="20sp"
                 android:text="@string/use_regex"
+                android:textColor="#673AB7" />
+
+            <Switch
+                android:id="@+id/recompileAPKSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:textSize="20sp"
+                android:text="@string/recompile_apk"
                 android:textColor="#673AB7" />
 
             <TextView
