@@ -18,6 +18,7 @@ AEE and Modder Hub also inherit an issue from axml2xml where XML files that cont
 * Ensure edit bar is fully visible on all screens
 * Add option to save APK with the updated manifest if an APK file was selected.
 * Add line numbers
+* try to figure out how to fix deobfuscated XML files like NP Manager does
 
 ## Done
 * Added buttons (in settings menu) to jump to the top/bottom of text
