@@ -21,4 +21,5 @@
     <string name="go_to_top">Go to top of text</string>
     <string name="save_decoded_xml">Save decoded XML</string>
     <string name="merge_activities">Merge activities</string>
+    <string name="recompile_apk">If an APK file was selected, compile and save it with the edited XML (not recommended)</string>
 </resources>
