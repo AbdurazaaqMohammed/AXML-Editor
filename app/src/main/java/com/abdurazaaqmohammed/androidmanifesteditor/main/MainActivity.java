@@ -14,6 +14,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.PopupMenu;
+import android.widget.RelativeLayout;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -48,6 +49,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import yuku.ambilwarna.AmbilWarnaDialog;
+
 public class MainActivity extends Activity {
 
     // Declaration of request codes for ActivityResult
@@ -79,6 +82,12 @@ public class MainActivity extends Activity {
         doNotSaveDecodedFile = settings.getBoolean("doNotSaveDecodedFile", false);
         caseSensitive = settings.getBoolean("caseSensitive", false);
         recompileAPK = settings.getBoolean("recompileAPK", false);
+        EditText output = findViewById(R.id.outputField);
+        output.setTextColor(settings.getInt("textColor", 0x691383));
+
+        RelativeLayout background = findViewById(R.id.main);
+        background.setBackgroundColor(settings.getInt("backgroundColor", 0xff000000));
+
         // Configure switches
         Switch useRegexSwitch = findViewById(R.id.replaceWithRegexSwitch);
         useRegexSwitch.setChecked(useRegex);
@@ -109,7 +118,6 @@ public class MainActivity extends Activity {
 
         buttonSearch.setOnClickListener(v -> {
             String searchQuery = caseSensitive ? editTextSearch.getText().toString() : editTextSearch.getText().toString().toLowerCase();
-            EditText output = findViewById(R.id.outputField);
             String outputText =  caseSensitive ? output.getText().toString() : output.getText().toString().toLowerCase();
             if (!findText(searchQuery, outputText))
                 Toast.makeText(MainActivity.this, "Text not found", Toast.LENGTH_SHORT).show();
@@ -121,7 +129,6 @@ public class MainActivity extends Activity {
         Button buttonPrev = findViewById(R.id.button_prev);
         buttonPrev.setOnClickListener(v -> {
             String searchQuery = caseSensitive ? editTextSearch.getText().toString() : editTextSearch.getText().toString().toLowerCase();
-            EditText output = findViewById(R.id.outputField);
             String outputText =  caseSensitive ? output.getText().toString() : output.getText().toString().toLowerCase();
             if (!findPreviousText(searchQuery, outputText))
                 Toast.makeText(MainActivity.this, "Text not found", Toast.LENGTH_SHORT).show();
@@ -132,7 +139,6 @@ public class MainActivity extends Activity {
             if (!caseSensitive) searchQuery = convertToUniversalCase(searchQuery);
             String replacementText = textToReplaceWith.getText().toString();
 
-            EditText output = findViewById(R.id.outputField);
             String outputText = output.getText().toString();
 
             Pattern pattern = Pattern.compile(searchQuery);
@@ -170,7 +176,6 @@ public class MainActivity extends Activity {
             if (!caseSensitive) searchQuery = convertToUniversalCase(searchQuery);
 
             String replacementText = textToReplaceWith.getText().toString();
-            EditText output = findViewById(R.id.outputField);
             String outputText = output.getText().toString();
             output.setText(outputText.replaceAll(searchQuery, replacementText));
         });
@@ -189,27 +194,51 @@ public class MainActivity extends Activity {
                     useRegexSwitch.setChecked(useRegex);
                     return true;
                 } else if (id == R.id.fix) {
-                    EditText output = findViewById(R.id.outputField);
                     output.setText(output.getText().toString().replaceAll("<[^>]*(AssetPack|assetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id|PlayCoreDialog)[^>]*(.*\\n.*\\n.*/(?!.*application).*>|.*\\n.*/.*>|>)", "").replace("isSplitRequired=\"true", "isSplitRequired=\"false").replaceAll("(splitTypes|requiredSplitTypes)=\".*\"", "").trim());
                     return true;
                 } else if (id == R.id.caseSensitive) {
                     caseSensitive = !caseSensitive;
                     return true;
                 } else if (id == R.id.goToBottom) {
-                    EditText output = findViewById(R.id.outputField);
                     if (!output.isFocused()) output.requestFocus();
                     output.setSelection(output.getText().length(), output.getText().length());
                     return true;
                 } else if (id == R.id.goToTop) {
-                    EditText output = findViewById(R.id.outputField);
                     if (!output.isFocused()) output.requestFocus();
                     output.setSelection(1, 1);
                     return true;
                 } else if (id == R.id.saveDecoded) {
                     callSaveFileResultLauncherForPlainTextData();
                     return true;
-                } else if (id == R.id.mergeActivities) {
+                } else if (id == R.id.setBackgroundColor) {
+                    AmbilWarnaDialog dialog = new AmbilWarnaDialog(this, settings.getInt("backgroundColor", 0xff000000), new AmbilWarnaDialog.OnAmbilWarnaListener() {
+                        @Override
+                        public void onOk(AmbilWarnaDialog dialog, int color) {
+                            settings.edit().putInt("backgroundColor", color).apply();
+                            background.setBackgroundColor(color);
+                        }
 
+                        @Override
+                        public void onCancel(AmbilWarnaDialog dialog) {
+                            // cancel was selected by the user
+                        }
+                    });
+                    dialog.show();
+                    return true;
+                } else if (id == R.id.setTextColor) {
+                    AmbilWarnaDialog dialog = new AmbilWarnaDialog(this, settings.getInt("textColor", 0x6765239), new AmbilWarnaDialog.OnAmbilWarnaListener() {
+                        @Override
+                        public void onOk(AmbilWarnaDialog dialog, int color) {
+                            settings.edit().putInt("textColor", color).apply();
+                            output.setTextColor(color);
+                        }
+
+                        @Override
+                        public void onCancel(AmbilWarnaDialog dialog) {
+                            // cancel was selected by the user
+                        }
+                    });
+                    dialog.show();
                     return true;
                 }
                 return false;
