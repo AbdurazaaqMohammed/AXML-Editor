@@ -34,7 +34,7 @@
                 android:padding="8dp"
                 android:orientation="horizontal"
                 android:visibility="gone">
-    
+
                 <Button
                     android:id="@+id/button_prev"
                     android:layout_width="wrap_content"
@@ -42,7 +42,7 @@
                     android:minHeight="0dp"
                     android:minWidth="0dp"
                     android:text="&lt;"/>
-    
+
                 <EditText
                     android:id="@+id/editText_search"
                     android:layout_width="wrap_content"
@@ -51,9 +51,9 @@
                     android:textColor="#673AB7"
                     android:textColorHint="#673AB7"
                     android:ems="3"
-                    android:inputType="text"
+                    android:inputType="textNoSuggestions"
                     android:importantForAutofill="no"/>
-    
+
                 <Button
                     android:id="@+id/button_search"
                     android:layout_width="wrap_content"
@@ -61,7 +61,7 @@
                     android:minHeight="0dp"
                     android:minWidth="0dp"
                     android:text="&gt;"/>
-    
+
                 <EditText
                     android:id="@+id/toReplace"
                     android:layout_width="wrap_content"
@@ -70,9 +70,9 @@
                     android:textColor="#673AB7"
                     android:ems="3"
                     android:textColorHint="#673AB7"
-                    android:inputType="text"
+                    android:inputType="textNoSuggestions"
                     android:importantForAutofill="no"/>
-    
+
                 <Button
                     android:id="@+id/button_rep"
                     android:layout_width="wrap_content"
@@ -80,7 +80,7 @@
                     android:minHeight="0dp"
                     android:minWidth="0dp"
                     android:text="🔁"/>
-    
+
                 <Button
                     android:id="@+id/button_repAll"
                     android:layout_width="wrap_content"
@@ -88,7 +88,7 @@
                     android:minHeight="0dp"
                     android:minWidth="0dp"
                     android:text="@string/repAll"/>
-    
+
                 <Button
                     android:id="@+id/dropdown_menu"
                     android:layout_width="wrap_content"
@@ -152,7 +152,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:ems="10"
-                android:inputType="text"
+                android:inputType="textNoSuggestions"
                 android:textColor="#673AB7"
                 android:textColorHint="#673AB7"
                 android:hint="@string/working_file"
@@ -195,7 +195,7 @@
                 android:id="@+id/outputField"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textMultiLine"
+                android:inputType="textMultiLine|textNoSuggestions"
                 android:textColor="#673AB7"
                 android:hint="@string/output"/>
 
