@@ -15,11 +15,10 @@ AEE and Modder Hub also inherit an issue from axml2xml where XML files that cont
 * Make it actually work on SDK<19
 * Support parsing all xml files from an apk (List all xml files in the apk to the user for selection)
   * (Add setting to always just open AndroidManifest)
-* Ensure edit bar is fully visible on all screens
-* Add option to save APK with the updated manifest if an APK file was selected.
 * Add line numbers
 * try to figure out how to fix deobfuscated XML files like NP Manager does
 
 ## Done
 * Added buttons (in settings menu) to jump to the top/bottom of text
 * Added support for selecting an APK (including split APKs; XAPK, APKS, APKM) and editing AndroidManifest.xml from it
+* Added option to save APK with the updated manifest if an APK file was selected.
