@@ -27,4 +27,4 @@ AEE and Modder Hub also inherit an issue from axml2xml where XML files that cont
 ## Done
 * Added buttons (in settings menu) to jump to the top/bottom of text
 * Added support for selecting an APK (including split APKs; XAPK, APKS, APKM) and editing AndroidManifest.xml from it
-* Added option to save APK with the updated manifest if an APK file was selected.
+* Added option to save APK with the updated manifest if an APK file was selected. (Note: the APK is not signed yet)
