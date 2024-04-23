@@ -17,6 +17,12 @@ AEE and Modder Hub also inherit an issue from axml2xml where XML files that cont
   * (Add setting to always just open AndroidManifest)
 * Add line numbers
 * try to figure out how to fix deobfuscated XML files like NP Manager does
+* Add quick refactoring options
+ * Quick edit version name, SDK versions etc. like how APK Editor and Apktool M do it
+ * Merge 2 activities (maintain attributes from both)
+ * Quick remove activities
+ * Add/remove/disable permissions/elements
+ * Remove all elements containing input string/regex
 
 ## Done
 * Added buttons (in settings menu) to jump to the top/bottom of text
