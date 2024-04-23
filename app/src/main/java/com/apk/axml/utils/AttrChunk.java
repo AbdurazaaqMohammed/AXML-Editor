@@ -1,5 +1,7 @@
 package com.apk.axml.utils;
 
+import android.text.TextUtils;
+
 import java.io.IOException;
 
 public class AttrChunk extends Chunk<Chunk.EmptyHeader> {
@@ -25,7 +27,7 @@ public class AttrChunk extends Chunk<Chunk.EmptyHeader> {
 
     @Override
     public void writeEx(IntWriter w) throws IOException {
-        w.write(startTagChunk.stringIndex(null,namespace));
+        w.write(startTagChunk.stringIndex(null, TextUtils.isEmpty(namespace) ? null : namespace));
         w.write(startTagChunk.stringIndex(namespace,name));
         if (value.type == 0x03)
             w.write(startTagChunk.stringIndex(null,rawValue));
