@@ -10,8 +10,8 @@ android {
         applicationId = "com.abdurazaaqmohammed.androidmanifesteditor"
         minSdk = 16
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.2"
+        versionCode = 8
+        versionName = "1.5.2"
 
     }
 
@@ -33,5 +33,5 @@ android {
     }
 }
 dependencies {
-    testImplementation("junit:junit:4.13.2")
+    implementation("com.github.yukuku:ambilwarna:2.0.1")
 }
