@@ -36,7 +36,7 @@ public class aXMLEncoder {
         return encode(context,p);
     }
 
-    private static byte[] encode(Context context, XmlPullParser p) throws XmlPullParserException, IOException {
+    public static byte[] encode(Context context, XmlPullParser p) throws XmlPullParserException, IOException {
         XmlChunk chunk = new XmlChunk(context);
         TagChunk current = null;
         for (int i=p.getEventType(); i!=XmlPullParser.END_DOCUMENT; i=p.next()) {
