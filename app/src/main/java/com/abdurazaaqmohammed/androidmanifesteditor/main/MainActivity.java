@@ -33,9 +33,10 @@ import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 
-import com.codyi96.xml2axml.Encoder;
 import com.abdurazaaqmohammed.androidmanifesteditor.R;
-import com.apk.axml.*;
+import com.apk.axml.aXMLEncoder;
+import com.apk.axml.aXMLDecoder;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -295,11 +296,7 @@ public class MainActivity extends Activity {
                 decode("text/xml");
             }
         } catch (IOException e) {
-            TextView errorBox = findViewById(R.id.errorField);
-            errorBox.setVisibility(View.VISIBLE);
-            final String error = e.toString();
-            errorBox.setText(error);
-            Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+            showError(e.toString());
         }
     }
     private void decode(String mimeType) {
@@ -325,23 +322,15 @@ public class MainActivity extends Activity {
 
             realRegexValue = useRegex;
             useRegex = true;
-            if(findText("PlayCoreDialog|AssetPack|assetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id", content)) {
-                TextView errorBox = findViewById(R.id.errorField);
-                errorBox.setVisibility(View.VISIBLE);
-                final String error = getString(R.string.useless_info);
-                errorBox.setText(error);
-                Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+            if(findText("plitTypes|PlayCoreDialog|AssetPack|assetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id", content)) {
+                showError(getString(R.string.useless_info));
             }
             useRegex = realRegexValue;
 
             findViewById(R.id.encodeFromField).setVisibility(View.VISIBLE);
             findViewById(R.id.editBar).setVisibility(View.VISIBLE);
         } catch (IOException | XmlPullParserException e) {
-            TextView errorBox = findViewById(R.id.errorField);
-            errorBox.setVisibility(View.VISIBLE);
-            final String error = e.toString();
-            errorBox.setText(error);
-            Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+            showError(e.toString());
         }
     }
     private boolean deleteDir(File dir) {
@@ -478,11 +467,7 @@ public class MainActivity extends Activity {
 //                        inputStream.close();
                     }
                 } catch (IOException e) {
-                    TextView errorBox = findViewById(R.id.errorField);
-                    errorBox.setVisibility(View.VISIBLE);
-                    final String error = e.toString();
-                    errorBox.setText(error);
-                    Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+                    showError(e.toString());
                 }
             }
         } else {
@@ -575,7 +560,7 @@ public class MainActivity extends Activity {
                         case REQUEST_CODE_SAVE_DECODED_XML_FROM_STRING:
                             ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "w");
                             OutputStream outputStream = new FileOutputStream(pfd.getFileDescriptor());
-                            outputStream.write(outputField.getText().toString().getBytes());
+                            outputStream.write(outputField.getText().toString().trim().getBytes());
                             outputStream.flush();
                             outputStream.close();
                             pfd.close();
@@ -584,9 +569,7 @@ public class MainActivity extends Activity {
                             byte[] encodedData;
                             if (encodeFromTextField) {
                                 String fromTextField = outputField.getText().toString().trim();
-                                encodedData = fromTextField.isEmpty() ? encodeFromFile() : new Encoder().encodeString(this, fromTextField);
-                                // in aXML(https://github.com/apk-editor/aXML) there is some bug that breaks encoding xml files which has an empty attribute ("") because it encodes it to "null" instead of "" for some reason (U can check in np manager, its an encoding problem not a decoding one) Idk why it happens but the old axml2xml (https://github.com/codyi96/xml2axml) doesnt have that problem
-                                // // Something in aXML causes blank fields (eg. taskAffinity="") to be encoded as "null" instead of "" which breaks the app. I don't know where it is but I need to find it, I'm not sure if simply removing the empty attribute will work or break anything.
+                                encodedData = fromTextField.isEmpty() ? encodeFromFile() : new aXMLEncoder().encodeString(this, fromTextField);
                             } else {
                                 encodedData = encodeFromFile();
                             }
@@ -595,24 +578,28 @@ public class MainActivity extends Activity {
                                 deleteDir(getExternalCacheDir());
                                 extractZip(getContentResolver().openInputStream(zipUriForRepacking), getExternalCacheDir(), encodedData);
                                 zipFolder(getExternalCacheDir(), getContentResolver().openOutputStream(uri));
+                                Toast.makeText(this, "XML encoded and saved to APK file successfully", Toast.LENGTH_SHORT).show();
+
                             } else {
                                 FileOutputStream fos = (FileOutputStream) getContentResolver().openOutputStream(uri);
-
                                 fos.write(encodedData);
                                 fos.close();
+                                Toast.makeText(this, "XML encoded and saved to XML file successfully", Toast.LENGTH_SHORT).show();
                             }
-                            Toast.makeText(this, "XML encoded and saved to " + (recompileAPK ? "APK" : "XML") + " file successfully", Toast.LENGTH_SHORT).show();
                     }
                 } catch (IOException | XmlPullParserException e) {
-                    TextView errorBox = findViewById(R.id.errorField);
-                    errorBox.setVisibility(View.VISIBLE);
-                    final String error = e.toString();
-                    errorBox.setText(error);
-                    Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+                   showError(e.toString());
                 }
 
             }
         }
+    }
+
+    private void showError(String error) {
+        TextView errorBox = findViewById(R.id.errorField);
+        errorBox.setVisibility(View.VISIBLE);
+        errorBox.setText(error);
+        Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
     }
 
     private byte[] encodeFromFile() throws XmlPullParserException, IOException {
@@ -621,7 +608,7 @@ public class MainActivity extends Activity {
         factory.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, true);
         XmlPullParser parser = factory.newPullParser();
         parser.setInput(is, "UTF-8");
-        return Encoder.encode(getApplicationContext(), parser);
+        return aXMLEncoder.encode(getApplicationContext(), parser);
     }
 
     public static void zipFolder(final File folder, final OutputStream outputStream) throws IOException {
