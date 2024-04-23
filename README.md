@@ -16,7 +16,7 @@ AEE and Modder Hub also inherit an issue from axml2xml where XML files that cont
 * Support parsing all xml files from an apk (List all xml files in the apk to the user for selection)
   * (Add setting to always just open AndroidManifest)
 * Add line numbers
-* try to figure out how to fix deobfuscated XML files like NP Manager does
+* try to figure out how to fix obfuscated XML files like NP Manager does
 * Add quick refactoring options
  * Quick edit version name, SDK versions etc. like how APK Editor and Apktool M do it
  * Merge 2 activities (maintain attributes from both)
