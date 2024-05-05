@@ -2,13 +2,18 @@ Android app to edit AXML - Android binary XML files (AndroidManifest.xml and lay
 
 # Usage
 ## Decoding
-You can share any AXML or APK file and you should see "Edit AXML" in the share menu, or open the app, press "Decode" and select any AXML or APK file. 
+There are 3 ways to open the split APK to be merged:
+* Share the file and select Edit AXML in the share menu
+* Press (open) the file and select Edit AXML in available options
+* Open the app from launcher and press the "Decode" button then select an APK or XML file.
+   * This option does not work on Android < 4.4, use one of the 2 other options or type the path to the APK (on your device storage) into the box in the app.
 
 If you open an already decoded file you can edit it in the app. 
 
 Note: Editing layout files is supported, if you extract from /res/ or share them with the app. If you share an APK file in the app, it will open AndroidManifest.xml, though I want to display a list of all the XML files from /res/ but I didn't implement it yet.
 ## Encoding
 If there is any text opened in the edit field, a button ("Encode from Field") will appear to encode from that field. You can encode from a saved text file by pressing the "Encode" button directly after opening the app.
+Note: If you use the option to add the modified file to the APK, it will not be signed, you have to sign it before installing with any tool like [apk-signer](https://play.google.com/store/apps/details?id=com.haibison.apksigner)
 
 # About
 
