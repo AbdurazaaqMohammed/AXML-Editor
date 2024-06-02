@@ -29,17 +29,17 @@ There are already several apps that perform this task, but they all have some pr
 AEE and Modder Hub also inherit an issue from axml2xml where XML files that contain large integers will fail to be encoded. The fix was implemented in AEE but Integer.parseInt is called before checking if the value is too big so it still crashes ([this should be fixed soon](https://github.com/apk-editor/aXML/pull/1/commits/dec819e45c17405baefa48946ad5dba64ad0d1f5))
 
 # Todo
-* Make it actually work on SDK<19
 * Support parsing all xml files from an apk (List all xml files in the apk to the user for selection)
   * (Add setting to always just open AndroidManifest)
-* Add line numbers
-* try to figure out how to fix obfuscated XML files like NP Manager does
+* Add line numbers/Use an actual code editor with syntax
+* try to figure out how to fix obfuscated XML files like MT Manager does
 * Add quick refactoring options
   * Quick edit version name, SDK versions etc. like how APK Editor and Apktool M do it
-  * Merge 2 activities (maintain attributes from both)
+  * Merge or switch 2 activities
+    * (Option to maintain attributes from both)
   * Quick remove activities
   * Add/remove/disable permissions/elements
-  * Remove all elements containing input string/regex
+  * Remove all elements or specific types (Activities/metadata/etc) containing input string/regex
 
 ## Done
 * Added buttons (in settings menu) to jump to the top/bottom of text
