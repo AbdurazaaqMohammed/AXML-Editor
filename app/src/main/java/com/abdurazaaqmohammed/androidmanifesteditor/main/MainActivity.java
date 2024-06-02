@@ -19,27 +19,25 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.abdurazaaqmohammed.androidmanifesteditor.R;
+import com.apk.axml.aXMLDecoder;
+import com.apk.axml.aXMLEncoder;
+
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 import java.io.BufferedInputStream;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-
-import com.abdurazaaqmohammed.androidmanifesteditor.R;
-import com.apk.axml.aXMLEncoder;
-import com.apk.axml.aXMLDecoder;
-
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.regex.Matcher;
@@ -68,6 +66,26 @@ public class MainActivity extends Activity {
     private final boolean isOldAndroid = Build.VERSION.SDK_INT<19;
     private InputStream is;
 
+    private void setColors(int textColor) {
+        ((EditText) findViewById(R.id.outputField)).setTextColor(textColor);
+        ((Switch) findViewById(R.id.doNotSaveDecodedSwitch)).setTextColor(textColor);
+        ((Switch) findViewById(R.id.recompileAPKSwitch)).setTextColor(textColor);
+        ((Switch) findViewById(R.id.replaceWithRegexSwitch)).setTextColor(textColor);
+        android.widget.EditText search = findViewById(R.id.editText_search);
+        search.setTextColor(textColor);
+        search.setHintTextColor(textColor);
+        android.widget.EditText replace = findViewById(R.id.toReplace);
+        replace.setTextColor(textColor);
+        replace.setHintTextColor(textColor);
+        android.widget.TextView errorField = findViewById(R.id.errorField);
+        errorField.setHintTextColor(textColor);
+        errorField.setTextColor(textColor);
+        android.widget.TextView workingFile = findViewById(R.id.workingFileField);
+        workingFile.setTextColor(textColor);
+        workingFile.setHintTextColor(textColor);
+
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,10 +101,7 @@ public class MainActivity extends Activity {
         caseSensitive = settings.getBoolean("caseSensitive", false);
         recompileAPK = settings.getBoolean("recompileAPK", false);
         EditText output = findViewById(R.id.outputField);
-        output.setTextColor(settings.getInt("textColor", 0x691383));
 
-        RelativeLayout background = findViewById(R.id.main);
-        background.setBackgroundColor(settings.getInt("backgroundColor", 0xff000000));
 
         // Configure switches
         Switch useRegexSwitch = findViewById(R.id.replaceWithRegexSwitch);
@@ -98,6 +113,10 @@ public class MainActivity extends Activity {
         Switch recompileAPKSwitch = findViewById(R.id.recompileAPKSwitch);
         recompileAPKSwitch.setChecked(recompileAPK);
         recompileAPKSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> recompileAPK = isChecked);
+
+        setColors(settings.getInt("textColor", 0xFF691383));
+        RelativeLayout background = findViewById(R.id.main);
+        background.setBackgroundColor(settings.getInt("backgroundColor", 0xff000000));
 
         if (isOldAndroid) {
             findViewById(R.id.oldAndroidInfo).setVisibility(View.VISIBLE);
@@ -230,7 +249,7 @@ public class MainActivity extends Activity {
                         @Override
                         public void onOk(AmbilWarnaDialog dialog, int color) {
                             settings.edit().putInt("textColor", color).apply();
-                            output.setTextColor(color);
+                            setColors(color);
                         }
 
                         @Override
@@ -348,7 +367,6 @@ public class MainActivity extends Activity {
             }
 
             outputField.setText(content);
-
             realRegexValue = useRegex;
             useRegex = true;
             if(findText("plitTypes|PlayCoreDialog|AssetPack|assetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id", content)) {
@@ -579,7 +597,6 @@ public class MainActivity extends Activity {
                                 zipUriForRepacking = uri;
                                 isAPK = true;
                             } else is = getContentResolver().openInputStream(uri);
-
                             decode(mimeType);
                             break;
                         case REQUEST_CODE_OPEN_FILE_MANAGER_TO_SAVE_ENCODED_XML:
