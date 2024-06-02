@@ -1,13 +1,14 @@
 package com.abdurazaaqmohammed.androidmanifesteditor.main;
 
 import android.app.Activity;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.view.Menu;
 import android.view.View;
@@ -15,9 +16,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.PopupMenu;
 import android.widget.RelativeLayout;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ToggleButton;
 
 import com.abdurazaaqmohammed.androidmanifesteditor.R;
 import com.apk.axml.aXMLDecoder;
@@ -32,17 +33,14 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.lang.ref.WeakReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
@@ -58,19 +56,20 @@ public class MainActivity extends Activity {
     private static final int REQUEST_CODE_SAVE_DECODED_XML_FROM_STRING = 5;
 
     // Declaration of variables
-    private boolean doNotSaveDecodedFile;
+    private boolean saveDecodedFile;
     private boolean useRegex;
     private boolean caseSensitive;
     private boolean encodeFromTextField = false;
     private boolean recompileAPK;
+    private boolean isAPK;
     private final boolean isOldAndroid = Build.VERSION.SDK_INT<19;
     private InputStream is;
 
     private void setColors(int textColor) {
         ((EditText) findViewById(R.id.outputField)).setTextColor(textColor);
-        ((Switch) findViewById(R.id.doNotSaveDecodedSwitch)).setTextColor(textColor);
-        ((Switch) findViewById(R.id.recompileAPKSwitch)).setTextColor(textColor);
-        ((Switch) findViewById(R.id.replaceWithRegexSwitch)).setTextColor(textColor);
+        ((ToggleButton) findViewById(R.id.saveDecodedSwitch)).setTextColor(textColor);
+        ((ToggleButton) findViewById(R.id.recompileAPKSwitch)).setTextColor(textColor);
+        ((ToggleButton) findViewById(R.id.replaceWithRegexSwitch)).setTextColor(textColor);
         android.widget.EditText search = findViewById(R.id.editText_search);
         search.setTextColor(textColor);
         search.setHintTextColor(textColor);
@@ -97,20 +96,20 @@ public class MainActivity extends Activity {
 
         // Fetch settings from SharedPreferences
         useRegex = settings.getBoolean("useRegex", false);
-        doNotSaveDecodedFile = settings.getBoolean("doNotSaveDecodedFile", false);
+        saveDecodedFile = settings.getBoolean("saveDecodedFile", false);
         caseSensitive = settings.getBoolean("caseSensitive", false);
         recompileAPK = settings.getBoolean("recompileAPK", false);
         EditText output = findViewById(R.id.outputField);
 
 
         // Configure switches
-        Switch useRegexSwitch = findViewById(R.id.replaceWithRegexSwitch);
+        ToggleButton useRegexSwitch = findViewById(R.id.replaceWithRegexSwitch);
         useRegexSwitch.setChecked(useRegex);
         useRegexSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> useRegex = isChecked);
-        Switch dontSaveDecodedSwitch = findViewById(R.id.doNotSaveDecodedSwitch);
-        dontSaveDecodedSwitch.setChecked(doNotSaveDecodedFile);
-        dontSaveDecodedSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> doNotSaveDecodedFile = isChecked);
-        Switch recompileAPKSwitch = findViewById(R.id.recompileAPKSwitch);
+        ToggleButton saveDecodedSwitch = findViewById(R.id.saveDecodedSwitch);
+        saveDecodedSwitch.setChecked(saveDecodedFile);
+        saveDecodedSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> saveDecodedFile = isChecked);
+        ToggleButton recompileAPKSwitch = findViewById(R.id.recompileAPKSwitch);
         recompileAPKSwitch.setChecked(recompileAPK);
         recompileAPKSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> recompileAPK = isChecked);
 
@@ -127,8 +126,22 @@ public class MainActivity extends Activity {
         findViewById(R.id.decodeButton).setOnClickListener(v -> openFilePickerOrStartProcessing(REQUEST_CODE_DECODE_XML));
         findViewById(R.id.encodeButton).setOnClickListener(v -> openFilePickerOrStartProcessing(REQUEST_CODE_OPEN_FILE_MANAGER_TO_SAVE_ENCODED_XML));
         findViewById(R.id.encodeFromField).setOnClickListener(v -> {
-            openFileManagerToSaveEncodedXML();
-            encodeFromTextField = true;
+            if(isOldAndroid) {
+                String fromTextField = output.getText().toString().trim();
+
+                byte[] encodedData;
+                try {
+                    encodedData = fromTextField.isEmpty() ? encodeFromFile() : new aXMLEncoder().encodeString(this, fromTextField);
+                    TextView t = findViewById(R.id.workingFileField);
+                    final String filePath = t.getText().toString();
+                    new saveAsyncTask(this, encodedData).execute(zipUriForRepacking, Uri.fromFile(new File(Environment.getExternalStorageDirectory()+"/Download/" + filePath.substring(filePath.lastIndexOf("/") + 1))));
+                } catch (XmlPullParserException | IOException e) {
+                    showError(e.toString());
+                }
+            } else {
+                openFileManagerToSaveEncodedXML();
+                encodeFromTextField = true;
+            }
         });
 
         // Configure stuff for edit bar
@@ -336,8 +349,8 @@ public class MainActivity extends Activity {
             if (mimeType.startsWith("app")) {
                 InputStream zipInputStream = getContentResolver().openInputStream(sharedUri);
                 is = getAndroidManifestInputStreamFromZip(zipInputStream);
-                isAPK = true;
                 zipUriForRepacking = sharedUri;
+                isAPK = true;
                 decode("text/xml");
             } else {
                 is = getContentResolver().openInputStream(sharedUri);
@@ -350,26 +363,23 @@ public class MainActivity extends Activity {
     private void decode(String mimeType) {
         try {
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
-            String content = "";
+            StringBuilder content = new StringBuilder();
             if (mimeType.endsWith("plain")) {
                 String line;
                 while ((line = br.readLine()) != null) {
-                    content = content + "\n" + line;
+                    content.append("\n").append(line);
                 }
             } else {
-                content = new aXMLDecoder().decode(is).trim();
-                if (!doNotSaveDecodedFile) callSaveFileResultLauncherForPlainTextData();
+                content = new StringBuilder(new aXMLDecoder().decode(is).trim());
+                if (saveDecodedFile) callSaveFileResultLauncherForPlainTextData();
             }
             boolean realRegexValue;
             EditText outputField = findViewById(R.id.outputField);
-            if (!doNotSaveDecodedFile) {
-                callSaveFileResultLauncherForPlainTextData();
-            }
 
-            outputField.setText(content);
+            outputField.setText(content.toString());
             realRegexValue = useRegex;
             useRegex = true;
-            if(findText("plitTypes|PlayCoreDialog|AssetPack|assetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id", content)) {
+            if(findText("plitTypes|PlayCoreDialog|AssetPack|assetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id", content.toString())) {
                 showError(getString(R.string.useless_info));
             }
             useRegex = realRegexValue;
@@ -380,28 +390,16 @@ public class MainActivity extends Activity {
             showError(e.toString());
         }
     }
-    private boolean deleteDir(File dir) {
-        if (dir != null && dir.isDirectory()) {
-            String[] children = dir.list();
-            for (String child : children) {
-                return deleteDir(new File(dir, child));
-            }
-        }
-
-        // The directory is now empty so delete it
-        return dir.delete();
-    }
 
     @Override
     protected void onPause() {
         final SharedPreferences settings = getSharedPreferences("set", Context.MODE_PRIVATE);
-        settings.edit().putBoolean("useRegex", useRegex).putBoolean("doNotSaveDecodedFile", doNotSaveDecodedFile).putBoolean("caseSensitive", caseSensitive).putBoolean("recompileAPK", recompileAPK).apply();
+        settings.edit().putBoolean("useRegex", useRegex).putBoolean("saveDecodedFile", saveDecodedFile).putBoolean("caseSensitive", caseSensitive).putBoolean("recompileAPK", recompileAPK).apply();
         super.onPause();
     }
 
     @Override
     protected void onDestroy() {
-        deleteDir(getExternalCacheDir());
         super.onDestroy();
     }
 
@@ -497,21 +495,26 @@ public class MainActivity extends Activity {
     private void openFilePickerOrStartProcessing(int requestCode) {
         if(isOldAndroid) {
             TextView t = findViewById(R.id.workingFileField);
-            Uri uri = Uri.parse(t.getText().toString());
-            if (uri != null) {
+            final String filePath = t.getText().toString();
+            Uri uri = Uri.fromFile(new File(filePath));
+            if (uri == null) {
+                showError(getString(R.string.invalid));
+            } else {
                 try {
-                    ContentResolver contentResolver = getContentResolver();
-                    InputStream inputStream = contentResolver.openInputStream(uri);
-                    if (inputStream != null) {
-                        switch (requestCode) {
-                            case REQUEST_CODE_DECODE_XML:
-                                startActivityForResult(new Intent(), REQUEST_CODE_DECODE_XML);
-                                break;
-                            case REQUEST_CODE_OPEN_FILE_MANAGER_TO_SAVE_ENCODED_XML:
-                                openFileManagerToSaveEncodedXML();
-                                break;
-                        }
-//                        inputStream.close();
+                    final String mimeType = getApplicationContext().getContentResolver().getType(uri);
+                    if (mimeType.startsWith("app")) {
+                        InputStream zipInputStream = getContentResolver().openInputStream(uri);
+                        is = getAndroidManifestInputStreamFromZip(zipInputStream);
+                        zipUriForRepacking = uri;
+                        isAPK = true;
+                    } else is = getContentResolver().openInputStream(uri);
+                    decode(mimeType);
+                    if(requestCode==REQUEST_CODE_SAVE_ENCODED_XML) {
+                        OutputStream outputStream = new FileOutputStream(Environment.getExternalStorageDirectory()+"/Download/" + filePath.substring(filePath.lastIndexOf("/") + 1));
+                        EditText outputField = findViewById(R.id.outputField);
+                        outputStream.write(outputField.getText().toString().trim().getBytes());
+                        outputStream.flush();
+                        outputStream.close();
                     }
                 } catch (IOException e) {
                     showError(e.toString());
@@ -527,57 +530,25 @@ public class MainActivity extends Activity {
     }
 
     private void callSaveFileResultLauncherForPlainTextData() {
-        String fileName = "decoded";
-        Intent saveFileIntent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-        saveFileIntent.addCategory(Intent.CATEGORY_OPENABLE);
-        saveFileIntent.setType("text/plain");
-        saveFileIntent.putExtra(Intent.EXTRA_TITLE, fileName);
-        startActivityForResult(saveFileIntent, REQUEST_CODE_SAVE_DECODED_XML_FROM_STRING);
-    }
+        if (isOldAndroid) {
+            final TextView output = findViewById(R.id.outputField);
+            String fromTextField = output.getText().toString().trim();
 
-    private void extractZip(InputStream zi, File outputDir, byte[] data) throws IOException {
-        byte[] buffer = new byte[1024];
-        try (ZipInputStream zis = new ZipInputStream(zi)) {
-            ZipEntry zipEntry = zis.getNextEntry();
-            while (zipEntry != null) {
-                File newFile = newFile(outputDir, zipEntry);
-                if(zipEntry.getName().startsWith("AndroidManifest")) {
-                    FileOutputStream fos = new FileOutputStream(newFile);
-                    fos.write(data);
-                    fos.close();
-                }
-                else if (zipEntry.isDirectory()) {
-                    if (!newFile.isDirectory() && !newFile.mkdirs()) {
-                        throw new IOException("Failed to create directory: " + newFile);
-                    }
-                } else {
-                    File parent = newFile.getParentFile();
-                    if (!parent.isDirectory() && !parent.mkdirs()) {
-                        throw new IOException("Failed to create directory: " + parent);
-                    }
-
-                    FileOutputStream fos = new FileOutputStream(newFile);
-                    int len;
-                    while ((len = zis.read(buffer)) > 0) {
-                        fos.write(buffer, 0, len);
-                    }
-                    fos.close();
-                }
-                zipEntry = zis.getNextEntry();
-            }
-            zis.closeEntry();
+            TextView t = findViewById(R.id.workingFileField);
+            final String filePath = t.getText().toString();
+            new saveAsyncTask(this, fromTextField.getBytes()).execute(null, Uri.fromFile(new File(Environment.getExternalStorageDirectory()+"/Download/" + filePath.substring(filePath.lastIndexOf("/") + 1))));
+        } else {
+            String fileName = "decoded";
+            Intent saveFileIntent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            saveFileIntent.addCategory(Intent.CATEGORY_OPENABLE);
+            saveFileIntent.setType("text/plain");
+            saveFileIntent.putExtra(Intent.EXTRA_TITLE, fileName);
+            startActivityForResult(saveFileIntent, REQUEST_CODE_SAVE_DECODED_XML_FROM_STRING);
         }
     }
-    private boolean isAPK = false;
+
     private Uri zipUriForRepacking;
-    private static File newFile(File outputDir, ZipEntry zipEntry) throws IOException {
-        File file = new File(outputDir, zipEntry.getName());
-        String canonicalizedPath = file.getCanonicalPath();
-        if (!canonicalizedPath.startsWith(outputDir.getCanonicalPath() + File.separator)) {
-            throw new IOException("Zip entry is outside of the target dir: " + zipEntry.getName());
-        }
-        return file;
-    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -619,19 +590,7 @@ public class MainActivity extends Activity {
                             } else {
                                 encodedData = encodeFromFile();
                             }
-
-                            if(isAPK && recompileAPK) {
-                                deleteDir(getExternalCacheDir());
-                                extractZip(getContentResolver().openInputStream(zipUriForRepacking), getExternalCacheDir(), encodedData);
-                                zipFolder(getExternalCacheDir(), getContentResolver().openOutputStream(uri));
-                                Toast.makeText(this, "XML encoded and saved to APK file successfully", Toast.LENGTH_SHORT).show();
-
-                            } else {
-                                FileOutputStream fos = (FileOutputStream) getContentResolver().openOutputStream(uri);
-                                fos.write(encodedData);
-                                fos.close();
-                                Toast.makeText(this, "XML encoded and saved to XML file successfully", Toast.LENGTH_SHORT).show();
-                            }
+                            new saveAsyncTask(this, encodedData).execute(zipUriForRepacking, uri);
                     }
                 } catch (IOException | XmlPullParserException e) {
                    showError(e.toString());
@@ -640,14 +599,68 @@ public class MainActivity extends Activity {
             }
         }
     }
-
-    private void showError(String error) {
-        TextView errorBox = findViewById(R.id.errorField);
-        errorBox.setVisibility(View.VISIBLE);
-        errorBox.setText(error);
-        Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+    private void toast(String message) {
+        runOnUiThread(() ->  Toast.makeText(this, message, Toast.LENGTH_SHORT).show());
     }
+    private static class saveAsyncTask extends AsyncTask<Uri, Void, Void> {
+        private static WeakReference<MainActivity> activityReference;
+        // only retain a weak reference to the activity
+        public saveAsyncTask(MainActivity context, byte[] data) {
+            activityReference = new WeakReference<>(context);
+            encodedData = data;
+        }
+        byte[] encodedData;
 
+        @Override
+        protected Void doInBackground(Uri... uris) {
+            MainActivity activity = activityReference.get();
+            try {
+                final Uri inputZipUri = uris[0];
+                final Uri outputUri = uris[1];
+                if(activity.isAPK && activity.recompileAPK) {
+                    try (ZipInputStream zis = new ZipInputStream(activity.getContentResolver().openInputStream(inputZipUri));
+                         ZipOutputStream zos = new ZipOutputStream(activity.getContentResolver().openOutputStream(outputUri))) {
+
+                        ZipEntry entry;
+                        while ((entry = zis.getNextEntry()) != null) {
+                            final String filename = entry.getName();
+                            ZipEntry newEntry = new ZipEntry(filename);
+                            zos.putNextEntry(newEntry);
+
+                            if ("AndroidManifest.xml".equals(filename)) {
+                                zos.write(encodedData, 0, encodedData.length);
+                            } else {
+                                byte[] buffer = new byte[1024];
+                                int len;
+                                while ((len = zis.read(buffer)) > 0) {
+                                    zos.write(buffer, 0, len);
+                                }
+                            }
+                            zos.closeEntry();
+                            zis.closeEntry();
+                        }
+                    }
+                    activity.toast(activity.getString(R.string.success) + " APK");
+                } else {
+                    FileOutputStream fos = (FileOutputStream) activity.getContentResolver().openOutputStream(outputUri);
+                    fos.write(encodedData);
+                    fos.close();
+                    activity.toast(activity.getString(R.string.success) + " XML");
+                }
+            } catch (IOException e) {
+                activity.showError(e.toString());
+            }
+            return null;
+        }
+    }
+    private void showError(String error) {
+        runOnUiThread(() -> {
+            TextView errorBox = findViewById(R.id.errorField);
+            errorBox.setVisibility(View.VISIBLE);
+            errorBox.setText(error);
+            Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
+        });
+    }
     private byte[] encodeFromFile() throws XmlPullParserException, IOException {
         // If encoding from file the input stream will be the decoded XML
         XmlPullParserFactory factory = XmlPullParserFactory.newInstance();
@@ -655,36 +668,6 @@ public class MainActivity extends Activity {
         XmlPullParser parser = factory.newPullParser();
         parser.setInput(is, "UTF-8");
         return aXMLEncoder.encode(getApplicationContext(), parser);
-    }
-
-    public static void zipFolder(final File folder, final OutputStream outputStream) throws IOException {
-        try (ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream)) {
-            processFolder(folder, zipOutputStream, folder.getPath().length() + 1);
-        }
-    }
-
-    private static void processFolder(final File folder, final ZipOutputStream zipOutputStream, final int prefixLength) throws IOException {
-        for (final File file : folder.listFiles()) {
-            if (file.isFile()) {
-                final ZipEntry zipEntry = new ZipEntry(file.getPath().substring(prefixLength));
-                if(file.getPath().contains("/res") && !file.getName().endsWith(".xml")) {
-                    zipOutputStream.setMethod(ZipOutputStream.STORED);
-                    zipEntry.setSize(file.length());
-                    CRC32 crc = new CRC32();
-                    crc.update(Files.readAllBytes(Paths.get(file.getPath())));
-                    zipEntry.setCrc(crc.getValue());
-                } else {
-                    zipOutputStream.setMethod(ZipOutputStream.DEFLATED);
-                }
-                zipOutputStream.putNextEntry(zipEntry);
-                try (FileInputStream inputStream = new FileInputStream(file)) {
-                    byte [] buffer = new byte[1024 * 4];     int read = 0;     while ((read = inputStream.read(buffer)) != -1) {         zipOutputStream.write(buffer, 0, read);     }
-                }
-                zipOutputStream.closeEntry();
-            } else if (file.isDirectory()) {
-                processFolder(file, zipOutputStream, prefixLength);
-            }
-        }
     }
 
     private void openFileManagerToSaveEncodedXML() {
