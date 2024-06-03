@@ -2,6 +2,7 @@
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000"
@@ -48,8 +49,6 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:hint="@string/search"
-                    android:textColor="#673AB7"
-                    android:textColorHint="#673AB7"
                     android:ems="3"
                     android:inputType="textNoSuggestions"
                     android:importantForAutofill="no"/>
@@ -67,9 +66,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:hint="@string/replace"
-                    android:textColor="#673AB7"
                     android:ems="3"
-                    android:textColorHint="#673AB7"
                     android:inputType="textNoSuggestions"
                     android:importantForAutofill="no"/>
 
@@ -93,7 +90,6 @@
                     android:id="@+id/dropdown_menu"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="#141414"
                     android:contentDescription="@string/menu_with_more_features"
                     android:text="⚙️" />
             </LinearLayout>
@@ -103,7 +99,6 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#000000"
         android:layout_alignParentBottom="true"
         android:layout_below="@+id/editStuff">
 
@@ -112,7 +107,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:padding="8dp"
-            android:background="#000000"
             android:orientation="vertical">
 
             <LinearLayout
@@ -141,7 +135,6 @@
                     android:layout_width="wrap_content"
                     android:layout_height="48dp"
                     android:layout_weight="1"
-                    android:textColor="#673AB7"
                     android:text="@string/oldAndroidInfo"
                     android:visibility="gone"/>
 
@@ -153,41 +146,53 @@
                 android:layout_height="48dp"
                 android:ems="10"
                 android:inputType="textNoSuggestions"
-                android:textColor="#673AB7"
-                android:textColorHint="#673AB7"
                 android:hint="@string/working_file"
                 android:importantForAutofill="no"/>
 
-            <Switch
-                android:id="@+id/doNotSaveDecodedSwitch"
+            <TextView
+                android:id="@+id/saveDecodedFilesLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/saveDecodedFiles"
+                android:textSize="20sp" />
+
+            <ToggleButton
+                android:id="@+id/saveDecodedSwitch"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:textSize="20sp"
-                android:text="@string/doNotSaveDecodedFiles"
-                android:textColor="#673AB7" />
+                android:textSize="20sp" />
 
-            <Switch
+            <TextView
+                android:id="@+id/useRegexLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/use_regex"
+                android:textSize="20sp" />
+
+            <ToggleButton
                 android:id="@+id/replaceWithRegexSwitch"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:textSize="20sp"
-                android:text="@string/use_regex"
-                android:textColor="#673AB7" />
+                android:textSize="20sp" />
 
-            <Switch
+            <TextView
+                android:id="@+id/recompileApkLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/recompile_apk"
+                android:textSize="20sp" />
+
+            <ToggleButton
                 android:id="@+id/recompileAPKSwitch"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:textSize="20sp"
-                android:text="@string/recompile_apk"
-                android:textColor="#673AB7" />
+                android:textSize="20sp" />
 
             <TextView
                 android:id="@+id/errorField"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textSize="20sp"
-                android:textColor="#673AB7"
                 android:textIsSelectable="true"
                 android:visibility="gone"/>
 
@@ -196,7 +201,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textMultiLine|textNoSuggestions"
-                android:textColor="#673AB7"
                 android:hint="@string/output"/>
 
         </LinearLayout>
