@@ -39,7 +39,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
-import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -66,11 +65,12 @@ public class MainActivity extends Activity {
     private final boolean isOldAndroid = Build.VERSION.SDK_INT<19;
     private InputStream is;
 
-    private void setColors(int textColor) {
+    private void setTextColor(int textColor) {
         ((EditText) findViewById(R.id.outputField)).setTextColor(textColor);
-        ((ToggleButton) findViewById(R.id.saveDecodedSwitch)).setTextColor(textColor);
-        ((ToggleButton) findViewById(R.id.recompileAPKSwitch)).setTextColor(textColor);
-        ((ToggleButton) findViewById(R.id.replaceWithRegexSwitch)).setTextColor(textColor);
+        ((TextView) findViewById(R.id.recompileApkLabel)).setTextColor(textColor);
+        ((TextView) findViewById(R.id.saveDecodedFilesLabel)).setTextColor(textColor);
+        ((TextView) findViewById(R.id.useRegexLabel)).setTextColor(textColor);
+
         android.widget.EditText search = findViewById(R.id.editText_search);
         search.setTextColor(textColor);
         search.setHintTextColor(textColor);
@@ -114,13 +114,14 @@ public class MainActivity extends Activity {
         recompileAPKSwitch.setChecked(recompileAPK);
         recompileAPKSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> recompileAPK = isChecked);
 
-        setColors(settings.getInt("textColor", 0xFF691383));
+        setTextColor(settings.getInt("textColor", 0xFF691383));
         RelativeLayout background = findViewById(R.id.main);
         background.setBackgroundColor(settings.getInt("backgroundColor", 0xff000000));
 
         if (isOldAndroid) {
             findViewById(R.id.oldAndroidInfo).setVisibility(View.VISIBLE);
-            // Android versions below 4.4 are too old to use the file picker for ACTION_OPEN_DOCUMENT/ACTION_CREATE_DOCUMENT. The location of the file must be manually input. The files will be saved to Download folder in the internal storage.
+            // Android versions below 4.4 are too old to use the file picker for ACTION_OPEN_DOCUMENT/ACTION_CREATE_DOCUMENT.
+            // The location of the file must be manually input. The files will be saved to Download folder in the internal storage.
         }
 
         // Configure main buttons
@@ -263,7 +264,7 @@ public class MainActivity extends Activity {
                         @Override
                         public void onOk(AmbilWarnaDialog dialog, int color) {
                             settings.edit().putInt("textColor", color).apply();
-                            setColors(color);
+                            setTextColor(color);
                         }
 
                         @Override
@@ -366,7 +367,8 @@ public class MainActivity extends Activity {
             BufferedReader br;
             StringBuilder content = new StringBuilder();
             String line;
-            if (check != null && Objects.equals(line = (br = new BufferedReader(new InputStreamReader(check))).readLine(), "<?xml version=\"1.0\" encoding=\"utf-8\"?>")) {
+            // You can't read twice from the same InputStream, so to check if the xml is binary or not we need 2 InputStream, if its from an APK it should always be binary
+            if (check != null && (line = (br = new BufferedReader(new InputStreamReader(check))).readLine()).startsWith("<?xml version=")) {
                 content.append(line);
                 while ((line = br.readLine()) != null) {
                     content.append("\n").append(line);
@@ -628,12 +630,12 @@ public class MainActivity extends Activity {
                 if(activity.isAPK && activity.recompileAPK) {
                     try (ZipInputStream zis = new ZipInputStream(activity.getContentResolver().openInputStream(inputZipUri));
                         ZipOutputStream zos = new ZipOutputStream(activity.getContentResolver().openOutputStream(outputUri))) {
-
+                        // This doesn't work on split APKs and no point making it work till it can sign as all apks in the split APK need to be signed
                         ZipEntry entry;
                         while ((entry = zis.getNextEntry()) != null) {
                             final String filename = entry.getName();
                             ZipEntry newEntry = new ZipEntry(filename);
-                            if(filename.contains("/res/") && !filename.endsWith(".xml")) {
+                            if(filename.startsWith("res/") && !filename.contains(".xml")) {
                                 zos.setMethod(ZipOutputStream.STORED);
                                 newEntry.setSize(entry.getSize());
                                 newEntry.setCrc(entry.getCrc());
