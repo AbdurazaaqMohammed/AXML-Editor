@@ -39,6 +39,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -351,21 +352,22 @@ public class MainActivity extends Activity {
                 is = getAndroidManifestInputStreamFromZip(zipInputStream);
                 zipUriForRepacking = sharedUri;
                 isAPK = true;
-                decode("text/xml");
+                decode(null);
             } else {
                 is = getContentResolver().openInputStream(sharedUri);
-                decode("text/xml");
+                decode(getContentResolver().openInputStream(sharedUri));
             }
         } catch (IOException e) {
             showError(e.toString());
         }
     }
-    private void decode(String mimeType) {
+    private void decode(InputStream check) {
         try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            BufferedReader br;
             StringBuilder content = new StringBuilder();
-            if (mimeType.endsWith("plain")) {
-                String line;
+            String line;
+            if (check != null && Objects.equals(line = (br = new BufferedReader(new InputStreamReader(check))).readLine(), "<?xml version=\"1.0\" encoding=\"utf-8\"?>")) {
+                content.append(line);
                 while ((line = br.readLine()) != null) {
                     content.append("\n").append(line);
                 }
@@ -387,7 +389,7 @@ public class MainActivity extends Activity {
             findViewById(R.id.encodeFromField).setVisibility(View.VISIBLE);
             findViewById(R.id.editBar).setVisibility(View.VISIBLE);
         } catch (IOException | XmlPullParserException e) {
-            showError(e.toString());
+            //showError(e.toString());
         }
     }
 
@@ -507,8 +509,11 @@ public class MainActivity extends Activity {
                         is = getAndroidManifestInputStreamFromZip(zipInputStream);
                         zipUriForRepacking = uri;
                         isAPK = true;
-                    } else is = getContentResolver().openInputStream(uri);
-                    decode(mimeType);
+                        decode(null);
+                    } else {
+                        is = getContentResolver().openInputStream(uri);
+                        decode(getContentResolver().openInputStream(uri));
+                    }
                     if(requestCode==REQUEST_CODE_SAVE_ENCODED_XML) {
                         OutputStream outputStream = new FileOutputStream(Environment.getExternalStorageDirectory()+"/Download/" + filePath.substring(filePath.lastIndexOf("/") + 1));
                         EditText outputField = findViewById(R.id.outputField);
@@ -541,7 +546,7 @@ public class MainActivity extends Activity {
             String fileName = "decoded";
             Intent saveFileIntent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
             saveFileIntent.addCategory(Intent.CATEGORY_OPENABLE);
-            saveFileIntent.setType("text/plain");
+            saveFileIntent.setType("text/xml");
             saveFileIntent.putExtra(Intent.EXTRA_TITLE, fileName);
             startActivityForResult(saveFileIntent, REQUEST_CODE_SAVE_DECODED_XML_FROM_STRING);
         }
@@ -567,8 +572,11 @@ public class MainActivity extends Activity {
                                 is = getAndroidManifestInputStreamFromZip(zipInputStream);
                                 zipUriForRepacking = uri;
                                 isAPK = true;
-                            } else is = getContentResolver().openInputStream(uri);
-                            decode(mimeType);
+                                decode(null);
+                            } else {
+                                is = getContentResolver().openInputStream(uri);
+                                decode(getContentResolver().openInputStream(uri));
+                            }
                             break;
                         case REQUEST_CODE_OPEN_FILE_MANAGER_TO_SAVE_ENCODED_XML:
                             is = getContentResolver().openInputStream(uri);
@@ -619,12 +627,19 @@ public class MainActivity extends Activity {
                 final Uri outputUri = uris[1];
                 if(activity.isAPK && activity.recompileAPK) {
                     try (ZipInputStream zis = new ZipInputStream(activity.getContentResolver().openInputStream(inputZipUri));
-                         ZipOutputStream zos = new ZipOutputStream(activity.getContentResolver().openOutputStream(outputUri))) {
+                        ZipOutputStream zos = new ZipOutputStream(activity.getContentResolver().openOutputStream(outputUri))) {
 
                         ZipEntry entry;
                         while ((entry = zis.getNextEntry()) != null) {
                             final String filename = entry.getName();
                             ZipEntry newEntry = new ZipEntry(filename);
+                            if(filename.contains("/res/") && !filename.endsWith(".xml")) {
+                                zos.setMethod(ZipOutputStream.STORED);
+                                newEntry.setSize(entry.getSize());
+                                newEntry.setCrc(entry.getCrc());
+                            } else {
+                                zos.setMethod(ZipOutputStream.DEFLATED);
+                            }
                             zos.putNextEntry(newEntry);
 
                             if ("AndroidManifest.xml".equals(filename)) {
