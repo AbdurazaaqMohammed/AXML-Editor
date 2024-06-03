@@ -9,7 +9,7 @@
     <string name="search">Search</string>
     <string name="replace">Replace</string>
     <string name="repAll">all</string>
-    <string name="doNotSaveDecodedFiles">Don\'t save decoded file; just open it for editing here</string>
+    <string name="saveDecodedFiles">Save XML to a file after decoding</string>
     <string name="use_regex">Use regex for search and replacement</string>
     <string name="menu_with_more_features">Menu with more features</string>
     <string name="remove_useless_info">Remove useless info (splits, assetPack, derived apk id)</string>
@@ -22,4 +22,8 @@
     <string name="save_decoded_xml">Save decoded XML</string>
     <string name="merge_activities">Merge activities</string>
     <string name="recompile_apk">If an APK file was selected, compile and save it with the edited XML (not recommended)</string>
+    <string name="set_bg">Set background color</string>
+    <string name="set_editor_text_color">Set editor text color</string>
+    <string name="success">Encoded and saved successfully to</string>
+    <string name="invalid">Invalid file</string>
 </resources>
