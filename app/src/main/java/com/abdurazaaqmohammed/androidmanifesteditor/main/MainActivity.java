@@ -1,6 +1,7 @@
 package com.abdurazaaqmohammed.androidmanifesteditor.main;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -12,10 +13,14 @@ import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.view.Menu;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.RelativeLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -39,6 +44,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -243,6 +249,9 @@ public class MainActivity extends Activity {
                     return true;
                 } else if (id == R.id.saveDecoded) {
                     callSaveFileResultLauncherForPlainTextData();
+                    return true;
+                }  else if (id == R.id.mergeActivities) {
+                    showInputDialog();
                     return true;
                 } else if (id == R.id.setBackgroundColor) {
                     AmbilWarnaDialog dialog = new AmbilWarnaDialog(this, settings.getInt("backgroundColor", 0xff000000), new AmbilWarnaDialog.OnAmbilWarnaListener() {
@@ -670,6 +679,93 @@ public class MainActivity extends Activity {
             return null;
         }
     }
+    private void showInputDialog() {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+
+        final Spinner spinner = new Spinner(this);
+        String[] options = {"Any attribute", "application", "meta-data", "activity", "receiver"};
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.options_array, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+
+        final EditText inputField = new EditText(this);
+        inputField.setHint("Enter search query");
+
+        final EditText replacementField = new EditText(this);
+        replacementField.setHint("Enter replacement text");
+
+        layout.addView(spinner);
+        layout.addView(inputField);
+        layout.addView(replacementField);
+        replacementField.setVisibility(View.INVISIBLE);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Edit Attributes");
+        builder.setView(layout);
+
+        boolean[] checkedItems = new boolean[options.length];
+        ArrayList<String> selectedItems = new ArrayList<>();
+        builder.setMultiChoiceItems(options, checkedItems, (dialog, index, isChecked) -> {
+            if (isChecked) {
+                selectedItems.add(options[index]);
+            } else {
+                selectedItems.remove(options[index]);
+            }
+        });
+
+        final int[] pos = new int[1];
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                pos[0] = position;
+
+                replacementField.setVisibility(position == 2 ? View.VISIBLE : View.INVISIBLE);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+            }
+        });
+
+        builder.setPositiveButton("OK", (dialog, which) -> {
+            String userInput = inputField.getText().toString();
+            String thing;
+
+            if (selectedItems.isEmpty()) {
+                showError("No attribute type selected");
+            } else {
+                if (selectedItems.contains(options[0])) {
+                    thing = "<[^>]*(" + userInput + ")[^>]*(.*\\n.*\\n.*/(?!.*application).*>|.*\\n.*/.*>|>)";
+                } else {
+                    StringBuilder thingy = new StringBuilder();
+                    for (int i = 0; i < selectedItems.size(); i++) {
+                        if (i < selectedItems.size() - 1) thingy.append('|');
+                        thingy.append(selectedItems.get(i));
+                    }
+                    thing = "<(" + thingy + ").*[^>]*(" + userInput + ")[^>]*(.*\\n.*\\n.*/(?!.*application).*>|.*\\n.*/.*>|>)";
+                }
+
+                EditText outputField = findViewById(R.id.outputField);
+                String outputText = outputField.getText().toString().trim();
+
+                if (pos[0] == 0) {
+                    outputField.setText(outputText.replaceAll(thing, ""));
+                } else if (pos[0] == 1) {
+                    findText(thing, outputText);
+                } else {
+                    String replacementText = replacementField.getText().toString();
+                    outputField.setText(outputText.replaceAll(thing, replacementText));
+                }
+            }
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+
+        builder.show();
+    }
+
     private void showError(String error) {
         runOnUiThread(() -> {
             TextView errorBox = findViewById(R.id.errorField);
