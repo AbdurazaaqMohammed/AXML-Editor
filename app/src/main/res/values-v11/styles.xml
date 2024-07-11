@@ -2,5 +2,7 @@
 <resources>
     <style name="bruh">
         <item name="android:popupMenuStyle">@style/PopupMenuStyle</item>
+        <item name="android:textColor">@color/purple</item>
+        <item name="android:textColorPrimary">@color/purple</item>
     </style>
 </resources>

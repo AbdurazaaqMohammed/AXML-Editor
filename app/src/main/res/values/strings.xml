@@ -26,6 +26,7 @@
     <string name="set_editor_text_color">Set editor text color</string>
     <string name="success">Encoded and saved successfully to</string>
     <string name="invalid">Invalid file</string>
+    <string name="nothing">Nothing selected</string>
     <string-array name="options_array">
         <item>Search</item>
         <item>Delete</item>

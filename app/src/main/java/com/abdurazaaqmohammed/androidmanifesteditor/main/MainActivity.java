@@ -819,20 +819,27 @@ public class MainActivity extends Activity {
         }
     }
     private void showInputDialog() {
+        final SharedPreferences settings = getSharedPreferences("set", Context.MODE_PRIVATE);
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
+        final int backgroundColor = settings.getInt("backgroundColor", 0xff000000);
+        layout.setBackgroundColor(backgroundColor);
 
         final Spinner spinner = new Spinner(this);
+        spinner.setBackgroundColor(backgroundColor);
         String[] options = {"Any attribute", "application", "meta-data", "activity", "receiver"};
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
                 R.array.options_array, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
-
         final EditText inputField = new EditText(this);
+        inputField.setTextColor(settings.getInt("textColor", 0x6765239));
+        inputField.setHintTextColor(settings.getInt("textColor", 0x6765239));
         inputField.setHint("Enter search query");
 
         final EditText replacementField = new EditText(this);
+        replacementField.setTextColor(settings.getInt("textColor", 0x6765239));
+        replacementField.setHintTextColor(settings.getInt("textColor", 0x6765239));
         replacementField.setHint("Enter replacement text");
 
         layout.addView(spinner);
@@ -840,7 +847,8 @@ public class MainActivity extends Activity {
         layout.addView(replacementField);
         replacementField.setVisibility(View.INVISIBLE);
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB) ?
+                new AlertDialog.Builder(this, R.style.CustomDialogTheme) : new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.merge_activities));
         builder.setView(layout);
 
@@ -873,7 +881,7 @@ public class MainActivity extends Activity {
             String textToFind;
 
             if (selectedItems.isEmpty()) {
-                showError("No attribute type selected");
+                showError(getString(R.string.nothing));
             } else {
                 if (selectedItems.contains(options[0])) {
                     textToFind = "<[^>]*(" + userInput + ")[^>]*(.*\\n.*\\n.*/(?!.*(application|manifest)).*>|.*\\n.*/(?!.*(application|manifest))>|>)";
