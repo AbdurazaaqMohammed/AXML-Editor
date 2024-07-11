@@ -12,6 +12,8 @@
             android:title="@string/go_to_bottom"/>
         <item android:id="@+id/saveDecoded"
             android:title="@string/save_decoded_xml"/>
+        <item android:id="@+id/mergeActivities"
+            android:title="@string/merge_activities"/>
         <item android:id="@+id/setBackgroundColor"
             android:title="@string/set_bg"/>
         <item android:id="@+id/setTextColor"

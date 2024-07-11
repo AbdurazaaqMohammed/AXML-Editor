@@ -20,10 +20,15 @@
     <string name="go_to_bottom">Go to bottom of text</string>
     <string name="go_to_top">Go to top of text</string>
     <string name="save_decoded_xml">Save decoded XML</string>
-    <string name="merge_activities">Merge activities</string>
+    <string name="merge_activities">Search attributes and edit</string>
     <string name="recompile_apk">If an APK file was selected, compile and save it with the edited XML (not recommended)</string>
     <string name="set_bg">Set background color</string>
     <string name="set_editor_text_color">Set editor text color</string>
     <string name="success">Encoded and saved successfully to</string>
     <string name="invalid">Invalid file</string>
+    <string-array name="options_array">
+        <item>Search</item>
+        <item>Delete</item>
+        <item>Replace</item>
+    </string-array>
 </resources>

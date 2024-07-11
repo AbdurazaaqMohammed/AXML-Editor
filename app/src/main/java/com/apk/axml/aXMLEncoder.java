@@ -24,8 +24,8 @@ import java.io.StringReader;
 public class aXMLEncoder {
 
     public static class Config {
-        public static StringPoolChunk.Encoding encoding = StringPoolChunk.Encoding.UNICODE;
-        public static int defaultReferenceRadix = 16;
+        public static final StringPoolChunk.Encoding encoding = StringPoolChunk.Encoding.UNICODE;
+        public static final int defaultReferenceRadix = 16;
     }
 
     public byte[] encodeString(Context context, String xml) throws XmlPullParserException, IOException {

@@ -5,7 +5,6 @@ import android.graphics.Color;
 import android.os.Build;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
