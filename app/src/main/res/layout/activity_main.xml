@@ -159,8 +159,7 @@
             <ToggleButton
                 android:id="@+id/saveDecodedSwitch"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textSize="20sp" />
+                android:layout_height="48dp" />
 
             <TextView
                 android:id="@+id/useRegexLabel"
@@ -172,8 +171,7 @@
             <ToggleButton
                 android:id="@+id/replaceWithRegexSwitch"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:textSize="20sp" />
+                android:layout_height="48dp" />
 
             <TextView
                 android:id="@+id/recompileApkLabel"
@@ -185,8 +183,19 @@
             <ToggleButton
                 android:id="@+id/recompileAPKSwitch"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="48dp" />
+
+            <TextView
+                android:id="@+id/signApkLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/sign"
                 android:textSize="20sp" />
+
+            <ToggleButton
+                android:id="@+id/signAPKSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" />
 
             <TextView
                 android:id="@+id/errorField"

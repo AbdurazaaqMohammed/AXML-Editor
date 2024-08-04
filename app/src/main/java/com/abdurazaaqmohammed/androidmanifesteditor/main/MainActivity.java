@@ -7,19 +7,21 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.LightingColorFilter;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
+import android.text.TextUtils;
 import android.view.ContextThemeWrapper;
 import android.view.Menu;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
@@ -27,10 +29,12 @@ import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.ToggleButton;
 
 import com.abdurazaaqmohammed.androidmanifesteditor.R;
+import com.aefyr.pseudoapksigner.IOUtils;
+import com.aefyr.pseudoapksigner.PseudoApkSigner;
 import com.apk.axml.aXMLEncoder;
+import com.starry.FileUtils;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -41,7 +45,6 @@ import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -58,6 +61,7 @@ import java.util.zip.ZipOutputStream;
 import mt.modder.hub.axml.AXMLPrinter;
 import yuku.ambilwarna.AmbilWarnaDialog;
 
+/** @noinspection deprecation*/
 public class MainActivity extends Activity {
 
     // Declaration of request codes for ActivityResult
@@ -67,34 +71,45 @@ public class MainActivity extends Activity {
     private static final int REQUEST_CODE_SAVE_DECODED_XML_FROM_STRING = 5;
 
     // Declaration of variables
+    private static int textColor;
+    public static int bgColor;
     private static boolean saveDecodedFile;
     private static boolean useRegex;
     private static boolean caseSensitive;
     private static boolean encodeFromTextField = false;
     private static boolean recompileAPK;
+    private static boolean signAPK;
     private static boolean isAPK;
-    private final static boolean doesntSupportBuiltInAndroidFilePicker = Build.VERSION.SDK_INT<19;
+    private final static boolean doesNotSupportBuiltInAndroidFilePicker = Build.VERSION.SDK_INT<19;
     private final static boolean supportsAsyncTask = Build.VERSION.SDK_INT >= Build.VERSION_CODES.CUPCAKE;
     private InputStream is;
 
-    private void setTextColor(int textColor) {
-        ((EditText) findViewById(R.id.outputField)).setTextColor(textColor);
-        ((TextView) findViewById(R.id.recompileApkLabel)).setTextColor(textColor);
-        ((TextView) findViewById(R.id.saveDecodedFilesLabel)).setTextColor(textColor);
-        ((TextView) findViewById(R.id.useRegexLabel)).setTextColor(textColor);
+    private void setColor(int color, boolean isTextColor) {
+        if(isTextColor) {
+            textColor = color;
+            ((EditText) findViewById(R.id.outputField)).setTextColor(color);
+            ((TextView) findViewById(R.id.recompileApkLabel)).setTextColor(color);
+            ((TextView) findViewById(R.id.saveDecodedFilesLabel)).setTextColor(color);
+            ((TextView) findViewById(R.id.useRegexLabel)).setTextColor(color);
+            ((TextView) findViewById(R.id.signApkLabel)).setTextColor(color);
 
-        android.widget.EditText search = findViewById(R.id.editText_search);
-        search.setTextColor(textColor);
-        search.setHintTextColor(textColor);
-        android.widget.EditText replace = findViewById(R.id.toReplace);
-        replace.setTextColor(textColor);
-        replace.setHintTextColor(textColor);
-        android.widget.TextView errorField = findViewById(R.id.errorField);
-        errorField.setHintTextColor(textColor);
-        errorField.setTextColor(textColor);
-        android.widget.TextView workingFile = findViewById(R.id.workingFileField);
-        workingFile.setTextColor(textColor);
-        workingFile.setHintTextColor(textColor);
+            EditText search = findViewById(R.id.editText_search);
+            search.setTextColor(color);
+            search.setHintTextColor(color);
+            EditText replace = findViewById(R.id.toReplace);
+            replace.setTextColor(color);
+            replace.setHintTextColor(color);
+            TextView errorField = findViewById(R.id.errorField);
+            errorField.setHintTextColor(color);
+            errorField.setTextColor(color);
+            TextView workingFile = findViewById(R.id.workingFileField);
+            workingFile.setTextColor(color);
+            workingFile.setHintTextColor(color);
+        } else {
+            RelativeLayout background = findViewById(R.id.main);
+            background.setBackgroundColor(color);
+            bgColor = color;
+        }
     }
 
     @Override
@@ -115,25 +130,28 @@ public class MainActivity extends Activity {
         saveDecodedFile = settings.getBoolean("saveDecodedFile", false);
         caseSensitive = settings.getBoolean("caseSensitive", false);
         recompileAPK = settings.getBoolean("recompileAPK", false);
+        signAPK = settings.getBoolean("signAPK", false);
         EditText output = findViewById(R.id.outputField);
 
 
         // Configure switches
-        ToggleButton useRegexSwitch = findViewById(R.id.replaceWithRegexSwitch);
+        CompoundButton useRegexSwitch = findViewById(R.id.replaceWithRegexSwitch);
         useRegexSwitch.setChecked(useRegex);
         useRegexSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> useRegex = isChecked);
-        ToggleButton saveDecodedSwitch = findViewById(R.id.saveDecodedSwitch);
+        CompoundButton saveDecodedSwitch = findViewById(R.id.saveDecodedSwitch);
         saveDecodedSwitch.setChecked(saveDecodedFile);
         saveDecodedSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> saveDecodedFile = isChecked);
-        ToggleButton recompileAPKSwitch = findViewById(R.id.recompileAPKSwitch);
+        CompoundButton recompileAPKSwitch = findViewById(R.id.recompileAPKSwitch);
         recompileAPKSwitch.setChecked(recompileAPK);
         recompileAPKSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> recompileAPK = isChecked);
+        CompoundButton signAPKSwitch = findViewById(R.id.signAPKSwitch);
+        signAPKSwitch.setChecked(recompileAPK);
+        signAPKSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> signAPK = isChecked);
 
-        setTextColor(settings.getInt("textColor", 0xFF691383));
-        RelativeLayout background = findViewById(R.id.main);
-        background.setBackgroundColor(settings.getInt("backgroundColor", 0xff000000));
+        setColor(settings.getInt("textColor", 0xFF691383), true);
+        setColor(settings.getInt("backgroundColor", 0xff000000), false);
 
-        if (doesntSupportBuiltInAndroidFilePicker) {
+        if (doesNotSupportBuiltInAndroidFilePicker) {
             findViewById(R.id.oldAndroidInfo).setVisibility(View.VISIBLE);
             // Android versions below 4.4 are too old to use the file picker for ACTION_OPEN_DOCUMENT/ACTION_CREATE_DOCUMENT.
             // The location of the file must be manually input. The files will be saved to Download folder in the internal storage.
@@ -143,19 +161,19 @@ public class MainActivity extends Activity {
         findViewById(R.id.decodeButton).setOnClickListener(v -> openFilePickerOrStartProcessing(REQUEST_CODE_DECODE_XML));
         findViewById(R.id.encodeButton).setOnClickListener(v -> openFilePickerOrStartProcessing(REQUEST_CODE_OPEN_FILE_MANAGER_TO_SAVE_ENCODED_XML));
         findViewById(R.id.encodeFromField).setOnClickListener(v -> {
-            if(doesntSupportBuiltInAndroidFilePicker) {
+            if(doesNotSupportBuiltInAndroidFilePicker) {
                 String fromTextField = output.getText().toString().trim();
 
                 byte[] encodedData;
                 try {
-                    encodedData = fromTextField.length()==0 ? encodeFromFile() : new aXMLEncoder().encodeString(this, fromTextField);
+                    encodedData = TextUtils.isEmpty(fromTextField) ? encodeFromFile() : new aXMLEncoder().encodeString(this, fromTextField);
                     TextView t = findViewById(R.id.workingFileField);
                     final String filePath = t.getText().toString();
                     if (supportsAsyncTask) {
                         new saveAsyncTask(this, encodedData).execute(zipUriForRepacking, Uri.fromFile(new File(Environment.getExternalStorageDirectory()+"/Download/" + filePath.substring(filePath.lastIndexOf("/") + 1))));
                     } else process(zipUriForRepacking, Uri.fromFile(new File(Environment.getExternalStorageDirectory()+"/Download/" + filePath.substring(filePath.lastIndexOf("/") + 1))), encodedData);
                 } catch (XmlPullParserException | IOException e) {
-                    showError(e.toString());
+                    showError(e);
                 }
             } else {
                 openFileManagerToSaveEncodedXML();
@@ -265,13 +283,10 @@ public class MainActivity extends Activity {
                     showInputDialog();
                     return true;
                 } else if (id == R.id.setBackgroundColor) {
-                    AmbilWarnaDialog dialog = new AmbilWarnaDialog(this, settings.getInt("backgroundColor", 0xff000000), new AmbilWarnaDialog.OnAmbilWarnaListener() {
+                    AmbilWarnaDialog dialog = new AmbilWarnaDialog(this, bgColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
                         @Override
                         public void onOk(AmbilWarnaDialog dialog, int color) {
-                            final SharedPreferences.Editor e = settings.edit();
-                                    e.putInt("backgroundColor", color);
-                            e.apply();
-                            background.setBackgroundColor(color);
+                            setColor(color, false);
                         }
 
                         @Override
@@ -282,13 +297,10 @@ public class MainActivity extends Activity {
                     dialog.show();
                     return true;
                 } else if (id == R.id.setTextColor) {
-                    AmbilWarnaDialog dialog = new AmbilWarnaDialog(this, settings.getInt("textColor", 0x6765239), new AmbilWarnaDialog.OnAmbilWarnaListener() {
+                    AmbilWarnaDialog dialog = new AmbilWarnaDialog(this, textColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
                         @Override
                         public void onOk(AmbilWarnaDialog dialog, int color) {
-                            final SharedPreferences.Editor e = settings.edit();
-                            e.putInt("textColor", color);
-                            setTextColor(color);
-                            e.apply();
+                            setColor(color, true);
                         }
 
                         @Override
@@ -345,17 +357,10 @@ public class MainActivity extends Activity {
                         showInputDialog();
                         break;
                     case 7:
-                        AmbilWarnaDialog bgDialog = new AmbilWarnaDialog(this, settings.getInt("backgroundColor", 0xff000000), new AmbilWarnaDialog.OnAmbilWarnaListener() {
+                        AmbilWarnaDialog bgDialog = new AmbilWarnaDialog(this, bgColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
                             @Override
                             public void onOk(AmbilWarnaDialog dialog, int color) {
-                                SharedPreferences.Editor e = settings.edit();
-                                e.putInt("backgroundColor", color);
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-                                    e.apply();
-                                } else {
-                                    e.commit();
-                                }
-                                background.setBackgroundColor(color);
+                                setColor(color, false);
                             }
 
                             @Override
@@ -366,17 +371,10 @@ public class MainActivity extends Activity {
                         bgDialog.show();
                         break;
                     case 8:
-                        AmbilWarnaDialog textDialog = new AmbilWarnaDialog(this, settings.getInt("textColor", 0x6765239), new AmbilWarnaDialog.OnAmbilWarnaListener() {
+                        AmbilWarnaDialog textDialog = new AmbilWarnaDialog(this, textColor, new AmbilWarnaDialog.OnAmbilWarnaListener() {
                             @Override
                             public void onOk(AmbilWarnaDialog dialog, int color) {
-                                SharedPreferences.Editor e = settings.edit();
-                                e.putInt("textColor", color);
-                                setTextColor(color);
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-                                    e.apply();
-                                } else {
-                                    e.commit();
-                                }
+                                setColor(color, true);
                             }
 
                             @Override
@@ -388,8 +386,11 @@ public class MainActivity extends Activity {
                         break;
                 }
             });
-
-            builder.show();
+            final AlertDialog ad = builder.create();
+            ad.show();
+            try {
+                Objects.requireNonNull(ad.getWindow()).getDecorView().getBackground().setColorFilter(new LightingColorFilter(0xFF000000, bgColor));
+            } catch (NullPointerException ignored) {}
         });
         final Intent fromShareOrView = getIntent();
         final String fromShareOrViewAction = fromShareOrView.getAction();
@@ -470,10 +471,10 @@ public class MainActivity extends Activity {
                 decode(getContentResolver().openInputStream(sharedUri));
             }
         } catch (IOException e) {
-            showError(e.toString());
+            showError(e);
         }
     }
-    private static String getOriginalFileName(Context context, Uri uri) {
+    public static String getOriginalFileName(Context context, Uri uri) {
         String result = null;
         try {
             if (Objects.equals(uri.getScheme(), "content")) {
@@ -524,15 +525,19 @@ public class MainActivity extends Activity {
             findViewById(R.id.encodeFromField).setVisibility(View.VISIBLE);
             findViewById(R.id.editBar).setVisibility(View.VISIBLE);
         } catch (IOException e) {
-            showError(e.toString());
+            showError(e);
         }
     }
 
     @Override
     protected void onPause() {
-        final SharedPreferences settings = getSharedPreferences("set", Context.MODE_PRIVATE);
-        final SharedPreferences.Editor e = settings.edit();
-        e.putBoolean("useRegex", useRegex).putBoolean("saveDecodedFile", saveDecodedFile).putBoolean("caseSensitive", caseSensitive).putBoolean("recompileAPK", recompileAPK);
+        SharedPreferences.Editor e = getSharedPreferences("set", Context.MODE_PRIVATE).edit().putBoolean("useRegex", useRegex)
+                .putBoolean("saveDecodedFile", saveDecodedFile)
+                .putBoolean("caseSensitive", caseSensitive)
+                .putBoolean("recompileAPK", recompileAPK)
+                .putBoolean("signAPK", signAPK)
+                .putInt("textColor", textColor)
+                .putInt("backgroundColor", bgColor);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
             e.apply();
         } else e.commit();
@@ -568,7 +573,7 @@ public class MainActivity extends Activity {
                 return true;
             }
         } else {
-            int foundPos = -1;
+            int foundPos;
 
             // First, search backward from the current position
             foundPos = outputText.lastIndexOf(query, startPos - 1);
@@ -629,7 +634,7 @@ public class MainActivity extends Activity {
         return false;
     }
     private void openFilePickerOrStartProcessing(int requestCode) {
-        if(doesntSupportBuiltInAndroidFilePicker) {
+        if(doesNotSupportBuiltInAndroidFilePicker) {
             TextView t = findViewById(R.id.workingFileField);
             final String filePath = t.getText().toString();
             Uri uri = Uri.fromFile(new File(filePath));
@@ -638,7 +643,7 @@ public class MainActivity extends Activity {
             } else {
                 try {
                     final String filename =  filePath.substring(filePath.lastIndexOf("/") + 1);
-                    if (filename.endsWith("apk") || filename.endsWith("apkm")) {
+                    if (filename.endsWith("apk") || filename.endsWith("apkm") || filename.endsWith("aspk")) {
                         InputStream zipInputStream = getContentResolver().openInputStream(uri);
                         is = getAndroidManifestInputStreamFromZip(zipInputStream);
                         zipUriForRepacking = uri;
@@ -649,14 +654,12 @@ public class MainActivity extends Activity {
                         decode(getContentResolver().openInputStream(uri));
                     }
                     if(requestCode==REQUEST_CODE_SAVE_ENCODED_XML) {
-                        OutputStream outputStream = new FileOutputStream(Environment.getExternalStorageDirectory()+ File.separator + "Download" + File.separator + filename);
-                        EditText outputField = findViewById(R.id.outputField);
-                        outputStream.write(outputField.getText().toString().trim().getBytes());
-                        outputStream.flush();
-                        outputStream.close();
+                        try (OutputStream outputStream = FileUtils.getOutputStream(Environment.getExternalStorageDirectory() + File.separator + "Download" + File.separator + filename)) {
+                            outputStream.write(((TextView) findViewById(R.id.outputField)).getText().toString().trim().getBytes());
+                        }
                     }
                 } catch (IOException e) {
-                    showError(e.toString());
+                    showError(e);
                 }
             }
         } else {
@@ -669,7 +672,7 @@ public class MainActivity extends Activity {
     }
 
     private void callSaveFileResultLauncherForPlainTextData() {
-        if (doesntSupportBuiltInAndroidFilePicker) {
+        if (doesNotSupportBuiltInAndroidFilePicker) {
             final TextView output = findViewById(R.id.outputField);
             String fromTextField = output.getText().toString().trim();
 
@@ -710,7 +713,7 @@ public class MainActivity extends Activity {
                     switch (requestCode) {
                         case REQUEST_CODE_DECODE_XML:
                             final String mimeType = getApplicationContext().getContentResolver().getType(uri);
-                            if (mimeType.startsWith("app")) {
+                            if (!TextUtils.isEmpty(mimeType) && mimeType.startsWith("app")) {
                                 InputStream zipInputStream = getContentResolver().openInputStream(uri);
                                 is = getAndroidManifestInputStreamFromZip(zipInputStream);
                                 zipUriForRepacking = uri;
@@ -726,25 +729,22 @@ public class MainActivity extends Activity {
                             openFileManagerToSaveEncodedXML();
                             break;
                         case REQUEST_CODE_SAVE_DECODED_XML_FROM_STRING:
-                            ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "w");
-                            OutputStream outputStream = new FileOutputStream(pfd.getFileDescriptor());
-                            outputStream.write(outputField.getText().toString().trim().getBytes());
-                            outputStream.flush();
-                            outputStream.close();
-                            pfd.close();
+                            try (OutputStream outputStream = FileUtils.getOutputStream(uri, this)) {
+                                outputStream.write(outputField.getText().toString().trim().getBytes());
+                            }
                             break;
                         case REQUEST_CODE_SAVE_ENCODED_XML:
                             byte[] encodedData;
                             if (encodeFromTextField) {
                                 String fromTextField = outputField.getText().toString().trim();
-                                encodedData = fromTextField.length()==0 ? encodeFromFile() : new aXMLEncoder().encodeString(this, fromTextField);
+                                encodedData = TextUtils.isEmpty(fromTextField) ? encodeFromFile() : new aXMLEncoder().encodeString(this, fromTextField);
                             } else {
                                 encodedData = encodeFromFile();
                             }
                             new saveAsyncTask(this, encodedData).execute(zipUriForRepacking, uri);
                     }
                 } catch (IOException | XmlPullParserException e) {
-                   showError(e.toString());
+                   showError(e);
                 }
 
             }
@@ -754,8 +754,9 @@ public class MainActivity extends Activity {
     private void process(Uri inputZipUri, Uri outputUri, byte[] encodedData) {
         try {
             if(isAPK && recompileAPK) {
-                try (ZipInputStream zis = new ZipInputStream(getContentResolver().openInputStream(inputZipUri));
-                     ZipOutputStream zos = new ZipOutputStream(getContentResolver().openOutputStream(outputUri))) {
+                File temp = null;
+                try (ZipInputStream zis = new ZipInputStream(FileUtils.getInputStream(inputZipUri, this));
+                     ZipOutputStream zos = new ZipOutputStream(signAPK ? FileUtils.getOutputStream(temp = new File(getCacheDir(), "temp.apk")) : FileUtils.getOutputStream(outputUri, this))) {
                     // This doesn't work on split APKs and no point making it work till it can sign as all apks in the split APK need to be signed
                     ZipEntry entry;
                     while ((entry = zis.getNextEntry()) != null) {
@@ -783,22 +784,40 @@ public class MainActivity extends Activity {
                         zis.closeEntry();
                     }
                 }
+                if(signAPK) {
+                    final String FILE_NAME_PAST = "testkey.past";
+                    final String FILE_NAME_PRIVATE_KEY = "testkey.pk8";
+                    File signingEnvironment = new File(getFilesDir(), "signing");
+                    File pastFile = new File(signingEnvironment, FILE_NAME_PAST);
+                    File privateKeyFile = new File(signingEnvironment, FILE_NAME_PRIVATE_KEY);
+                    if (!pastFile.exists() || !privateKeyFile.exists()) {
+                        signingEnvironment.mkdir();
+                        IOUtils.copyFileFromAssets(this, FILE_NAME_PAST, pastFile);
+                        IOUtils.copyFileFromAssets(this, FILE_NAME_PRIVATE_KEY, privateKeyFile);
+                    }
+                    try {
+                        PseudoApkSigner.sign(FileUtils.getInputStream(temp), FileUtils.getOutputStream(outputUri, this), pastFile, privateKeyFile);
+                    } catch (Exception e) {
+                        showError(getString(R.string.sign_fail));
+                        FileUtils.copyFile(temp, FileUtils.getOutputStream(outputUri, this));
+                    }
+                }
                 toast(getString(R.string.success) + " APK");
             } else {
-                try (FileOutputStream fos = (FileOutputStream) getContentResolver().openOutputStream(outputUri)) {
+                try (OutputStream fos = FileUtils.getOutputStream(outputUri, this)) {
                     fos.write(encodedData);
-                    fos.close();
                     toast(getString(R.string.success) + " XML");
                 }
             }
         } catch (IOException e) {
-            showError(e.toString());
+            showError(e);
         }
     }
 
     private void toast(String message) {
         runOnUiThread(() ->  Toast.makeText(this, message, Toast.LENGTH_SHORT).show());
     }
+
     @TargetApi(Build.VERSION_CODES.CUPCAKE)
     private static class saveAsyncTask extends AsyncTask<Uri, Void, Void> {
         private static WeakReference<MainActivity> activityReference;
@@ -819,27 +838,26 @@ public class MainActivity extends Activity {
         }
     }
     private void showInputDialog() {
-        final SharedPreferences settings = getSharedPreferences("set", Context.MODE_PRIVATE);
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
-        final int backgroundColor = settings.getInt("backgroundColor", 0xff000000);
-        layout.setBackgroundColor(backgroundColor);
+        layout.setBackgroundColor(bgColor);
 
         final Spinner spinner = new Spinner(this);
-        spinner.setBackgroundColor(backgroundColor);
+        spinner.setBackgroundColor(bgColor);
         String[] options = {"Any attribute", "application", "meta-data", "activity", "receiver"};
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+        ArrayAdapter<CharSequence> adapter = CustomArrayAdapter.createFromResource(this,
                 R.array.options_array, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
+
         final EditText inputField = new EditText(this);
-        inputField.setTextColor(settings.getInt("textColor", 0x6765239));
-        inputField.setHintTextColor(settings.getInt("textColor", 0x6765239));
+        inputField.setTextColor(textColor);
+        inputField.setHintTextColor(textColor);
         inputField.setHint("Enter search query");
 
         final EditText replacementField = new EditText(this);
-        replacementField.setTextColor(settings.getInt("textColor", 0x6765239));
-        replacementField.setHintTextColor(settings.getInt("textColor", 0x6765239));
+        replacementField.setTextColor(textColor);
+        replacementField.setHintTextColor(textColor);
         replacementField.setHint("Enter replacement text");
 
         layout.addView(spinner);
@@ -847,8 +865,7 @@ public class MainActivity extends Activity {
         layout.addView(replacementField);
         replacementField.setVisibility(View.INVISIBLE);
 
-        AlertDialog.Builder builder = (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.HONEYCOMB) ?
-                new AlertDialog.Builder(this, R.style.CustomDialogTheme) : new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.merge_activities));
         builder.setView(layout);
 
@@ -880,9 +897,8 @@ public class MainActivity extends Activity {
             String userInput = inputField.getText().toString();
             String textToFind;
 
-            if (selectedItems.isEmpty()) {
-                showError(getString(R.string.nothing));
-            } else {
+            if (selectedItems.isEmpty()) showError(getString(R.string.nothing));
+            else {
                 if (selectedItems.contains(options[0])) {
                     textToFind = "<[^>]*(" + userInput + ")[^>]*(.*\\n.*\\n.*/(?!.*(application|manifest)).*>|.*\\n.*/(?!.*(application|manifest))>|>)";
                 } else {
@@ -913,7 +929,12 @@ public class MainActivity extends Activity {
         });
 
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-        builder.show();
+        final AlertDialog ad = builder.create();
+        ad.show();
+        if(Build.VERSION.SDK_INT > 2) ad.getListView().setAdapter(new CustomArrayAdapter(this, options, textColor));
+        try {
+            Objects.requireNonNull(ad.getWindow()).getDecorView().getBackground().setColorFilter(new LightingColorFilter(0xFF000000, bgColor));
+        } catch (NullPointerException ignored) {}
     }
 
     private void showError(String error) {
@@ -924,6 +945,19 @@ public class MainActivity extends Activity {
             Toast.makeText(this, error, Toast.LENGTH_SHORT).show();
         });
     }
+
+    private void showError(Exception e) {
+        final String mainErr = e.toString();
+        StringBuilder stackTrace = new StringBuilder().append(mainErr).append('\n');
+        for(StackTraceElement line : e.getStackTrace()) stackTrace.append(line).append('\n');
+        runOnUiThread(() -> {
+            TextView errorBox = findViewById(R.id.errorField);
+            errorBox.setVisibility(View.VISIBLE);
+            errorBox.setText(stackTrace);
+            Toast.makeText(this, mainErr, Toast.LENGTH_SHORT).show();
+        });
+    }
+
     private byte[] encodeFromFile() throws XmlPullParserException, IOException {
         // If encoding from file the input stream will be the decoded XML
         XmlPullParserFactory factory = XmlPullParserFactory.newInstance();

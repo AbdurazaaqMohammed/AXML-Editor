@@ -27,6 +27,8 @@
     <string name="success">Encoded and saved successfully to</string>
     <string name="invalid">Invalid file</string>
     <string name="nothing">Nothing selected</string>
+    <string name="sign">Sign the exported APK</string>
+    <string name="sign_fail">Failed to sign APK, saving without signing</string>
     <string-array name="options_array">
         <item>Search</item>
         <item>Delete</item>

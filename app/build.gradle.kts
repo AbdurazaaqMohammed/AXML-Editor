@@ -4,14 +4,14 @@ plugins {
 
 android {
     namespace = "com.abdurazaaqmohammed.androidmanifesteditor"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.abdurazaaqmohammed.androidmanifesteditor"
-        minSdk = 16
-        targetSdk = 34
-        versionCode = 8
-        versionName = "1.5.2"
+        minSdk = 1
+        targetSdk = 35
+        versionCode = 11
+        versionName = "1.6.2"
 
     }
 
@@ -33,5 +33,4 @@ android {
     }
 }
 dependencies {
-    implementation("com.github.yukuku:ambilwarna:2.0.1")
 }
