@@ -13,7 +13,6 @@ If you open an already decoded file you can edit it in the app. 
 Note: Editing layout files is supported, if you extract from /res/ or share them with the app. If you share an APK file in the app, it will open AndroidManifest.xml, though I want to display a list of all the XML files from /res/ but I didn't implement it yet.
 ## Encoding
 If there is any text opened in the edit field, a button ("Encode from Field") will appear to encode from that field. You can encode from a saved text file by pressing the "Encode" button directly after opening the app.
-Note: If you use the option to add the modified file to the APK, it will not be signed, you have to sign it before installing with any tool like [apk-signer](https://play.google.com/store/apps/details?id=com.haibison.apksigner)
 
 # About
 
@@ -47,5 +46,6 @@ AEE and Modder Hub also inherit an issue from axml2xml where XML files that cont
 ## Done
 * Added buttons (in settings menu) to jump to the top/bottom of text
 * Added support for selecting an APK (including split APKs; XAPK, APKS, APKM) and editing AndroidManifest.xml from it
-* Added option to save APK with the updated manifest if an APK file was selected. (Note: the APK is not signed yet)
+* Added option to save APK with the updated manifest if an APK file was selected.
+  * Added option to sign the modified APK
 * Added option to remove all elements or specific types (Activities/metadata/etc) containing input string/regex
