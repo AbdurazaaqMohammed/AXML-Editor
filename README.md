@@ -31,6 +31,7 @@ AEE and Modder Hub also inherit an issue from axml2xml where XML files that cont
 * axml2xml by [apk-editor](https://github.com/apk-editor/aXML), [codyi96](https://github.com/codyi96/xml2axml), [hzw1199](https://github.com/hzw1199/xml2axml) and [l741589](https://github.com/l741589/xml2axml)
 * [AXMLPrinter](https://github.com/developer-krushna/AXMLPrinter) by [developer-krushna](https://github.com/developer-krushna)
 * [AmbilWarna Color Picker](https://github.com/yukuku/ambilwarna)
+* https://github.com/MuntashirAkon/apksig-android for signing APKs
 
 # Todo
 * Support parsing all xml files from an apk (List all xml files in the apk to the user for selection)
