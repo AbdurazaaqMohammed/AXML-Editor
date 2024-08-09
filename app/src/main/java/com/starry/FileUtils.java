@@ -67,34 +67,31 @@ public class FileUtils {
     }
 
     public static void copyFile(File sourceFile, File destinationFile) throws IOException {
-        try (InputStream fis = getInputStream(sourceFile);
-             OutputStream fos = getOutputStream(destinationFile)) {
-
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = fis.read(buffer)) > 0) {
-                fos.write(buffer, 0, length);
-            }
+        try (InputStream is = getInputStream(sourceFile);
+             OutputStream os = getOutputStream(destinationFile)) {
+            copyFile(is, os);
         }
     }
-    public static void copyFile(File sourceFile, OutputStream fos) throws IOException {
-        try (InputStream fis = getInputStream(sourceFile)) {
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = fis.read(buffer)) > 0) {
-                fos.write(buffer, 0, length);
-            }
+    public static void copyFile(File sourceFile, OutputStream os) throws IOException {
+        try (InputStream is = getInputStream(sourceFile)) {
+            copyFile(is, os);
         }
     }
 
-    public static void copyFile(InputStream sourceFile, File destinationFile) throws IOException {
-        try (OutputStream fos = getOutputStream(destinationFile)) {
+    public static void copyFile(InputStream is, File destinationFile) throws IOException {
+        try (OutputStream os = getOutputStream(destinationFile)) {
+            copyFile(is, os);
+        }
+    }
+
+    public static void copyFile(InputStream is, OutputStream os) throws IOException {
+        if(supportsWriteExternalStorage) {
             byte[] buffer = new byte[1024];
             int length;
-            while ((length = sourceFile.read(buffer)) > 0) {
-                fos.write(buffer, 0, length);
+            while ((length = is.read(buffer)) > 0) {
+                os.write(buffer, 0, length);
             }
-        }
+        } else android.os.FileUtils.copy(is, os);
     }
 
     public static OutputStream getOutputStream(Uri uri, Context context) throws IOException {
@@ -105,9 +102,11 @@ public class FileUtils {
         return file != null && file.canWrite() ? getOutputStream(file) : context.getContentResolver().openOutputStream(uri);
     }
 
+    final public static boolean supportsWriteExternalStorage = Build.VERSION.SDK_INT < 30;
+
     public static boolean doesNotHaveStoragePerm(Context context) {
         if (Build.VERSION.SDK_INT < 23) return false;
-        return Build.VERSION.SDK_INT < 30 ?
+        return supportsWriteExternalStorage ?
                 context.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED :
                 !Environment.isExternalStorageManager();
     }

@@ -8,6 +8,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.LightingColorFilter;
+import android.graphics.Paint;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.RectShape;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -16,8 +21,11 @@ import android.os.Environment;
 import android.provider.OpenableColumns;
 import android.text.TextUtils;
 import android.view.ContextThemeWrapper;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -25,7 +33,6 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
-import android.widget.RelativeLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -34,6 +41,9 @@ import com.abdurazaaqmohammed.androidmanifesteditor.R;
 import com.aefyr.pseudoapksigner.IOUtils;
 import com.aefyr.pseudoapksigner.PseudoApkSigner;
 import com.apk.axml.aXMLEncoder;
+import com.github.angads25.filepicker.model.DialogConfigs;
+import com.github.angads25.filepicker.model.DialogProperties;
+import com.github.angads25.filepicker.view.FilePickerDialog;
 import com.starry.FileUtils;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -84,6 +94,17 @@ public class MainActivity extends Activity {
     private final static boolean supportsAsyncTask = Build.VERSION.SDK_INT >= Build.VERSION_CODES.CUPCAKE;
     private InputStream is;
 
+    private void setButtonBorder(Button button) {
+        ShapeDrawable border = new ShapeDrawable(new RectShape());
+        Paint paint = border.getPaint();
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setColor(textColor);
+        paint.setStrokeWidth(4);
+        button.setBackgroundColor(bgColor);
+        button.setTextColor(textColor);
+        button.setBackgroundDrawable(border);
+    }
+
     private void setColor(int color, boolean isTextColor) {
         if(isTextColor) {
             textColor = color;
@@ -106,10 +127,21 @@ public class MainActivity extends Activity {
             workingFile.setTextColor(color);
             workingFile.setHintTextColor(color);
         } else {
-            RelativeLayout background = findViewById(R.id.main);
-            background.setBackgroundColor(color);
+            findViewById(R.id.main).setBackgroundColor(color);
             bgColor = color;
         }
+        setButtonBorder(findViewById(R.id.encodeFromField));
+        setButtonBorder(findViewById(R.id.button_prev));
+        setButtonBorder(findViewById(R.id.button_search));
+        setButtonBorder(findViewById(R.id.button_rep));
+        setButtonBorder(findViewById(R.id.button_repAll));
+        setButtonBorder(findViewById(R.id.dropdown_menu));
+        setButtonBorder(findViewById(R.id.decodeButton));
+        setButtonBorder(findViewById(R.id.encodeButton));
+        setButtonBorder(findViewById(R.id.saveDecodedSwitch));
+        setButtonBorder(findViewById(R.id.replaceWithRegexSwitch));
+        setButtonBorder(findViewById(R.id.recompileAPKSwitch));
+        setButtonBorder(findViewById(R.id.signAPKSwitch));
     }
 
     @Override
@@ -132,7 +164,6 @@ public class MainActivity extends Activity {
         recompileAPK = settings.getBoolean("recompileAPK", false);
         signAPK = settings.getBoolean("signAPK", false);
         EditText output = findViewById(R.id.outputField);
-
 
         // Configure switches
         CompoundButton useRegexSwitch = findViewById(R.id.replaceWithRegexSwitch);
@@ -386,11 +417,7 @@ public class MainActivity extends Activity {
                         break;
                 }
             });
-            final AlertDialog ad = builder.create();
-            ad.show();
-            try {
-                Objects.requireNonNull(ad.getWindow()).getDecorView().getBackground().setColorFilter(new LightingColorFilter(0xFF000000, bgColor));
-            } catch (NullPointerException ignored) {}
+            styleAlertDialog(builder.create(), null);
         });
         final Intent fromShareOrView = getIntent();
         final String fromShareOrViewAction = fromShareOrView.getAction();
@@ -517,7 +544,7 @@ public class MainActivity extends Activity {
             outputField.setText(content.toString());
             realRegexValue = useRegex;
             useRegex = true;
-            if(findText("plitTypes|PlayCoreDialog|AssetPack|assetpack|MissingSplit|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id", content.toString())) {
+            if(findText("plitTypes|com\\.android\\.dynamic\\.apk\\.fused\\.modules|com\\.android\\.stamp\\.source|com\\.android\\.stamp\\.type|com\\.android\\.vending\\.splits|com\\.android\\.vending\\.derived\\.apk\\.id", content.toString())) {
                 showError(getString(R.string.useless_info));
             }
             useRegex = realRegexValue;
@@ -593,7 +620,6 @@ public class MainActivity extends Activity {
     }
 
     private boolean findText(String query, String outputText) {
-
         EditText output = findViewById(R.id.outputField);
         int startPos = output.getSelectionEnd();
 
@@ -633,35 +659,51 @@ public class MainActivity extends Activity {
         }
         return false;
     }
+
+    private void checkForOldAndroid(String filePath, int requestCode) {
+        Uri uri = Uri.fromFile(new File(filePath));
+        try {
+            final String filename =  filePath.substring(filePath.lastIndexOf("/") + 1);
+            if (filename.endsWith("apk") || filename.endsWith("apkm") || filename.endsWith("aspk")) {
+                InputStream zipInputStream = getContentResolver().openInputStream(uri);
+                is = getAndroidManifestInputStreamFromZip(zipInputStream);
+                zipUriForRepacking = uri;
+                isAPK = true;
+                decode(null);
+            } else {
+                is = getContentResolver().openInputStream(uri);
+                decode(getContentResolver().openInputStream(uri));
+            }
+            if(requestCode==REQUEST_CODE_SAVE_ENCODED_XML) {
+                try (OutputStream outputStream = FileUtils.getOutputStream(Environment.getExternalStorageDirectory() + File.separator + "Download" + File.separator + filename)) {
+                    outputStream.write(((TextView) findViewById(R.id.outputField)).getText().toString().trim().getBytes());
+                }
+            }
+        } catch (IOException e) {
+            showError(e);
+        }
+    }
+
     private void openFilePickerOrStartProcessing(int requestCode) {
         if(doesNotSupportBuiltInAndroidFilePicker) {
             TextView t = findViewById(R.id.workingFileField);
-            final String filePath = t.getText().toString();
-            Uri uri = Uri.fromFile(new File(filePath));
-            if (uri == null) {
-                showError(getString(R.string.invalid));
-            } else {
-                try {
-                    final String filename =  filePath.substring(filePath.lastIndexOf("/") + 1);
-                    if (filename.endsWith("apk") || filename.endsWith("apkm") || filename.endsWith("aspk")) {
-                        InputStream zipInputStream = getContentResolver().openInputStream(uri);
-                        is = getAndroidManifestInputStreamFromZip(zipInputStream);
-                        zipUriForRepacking = uri;
-                        isAPK = true;
-                        decode(null);
-                    } else {
-                        is = getContentResolver().openInputStream(uri);
-                        decode(getContentResolver().openInputStream(uri));
-                    }
-                    if(requestCode==REQUEST_CODE_SAVE_ENCODED_XML) {
-                        try (OutputStream outputStream = FileUtils.getOutputStream(Environment.getExternalStorageDirectory() + File.separator + "Download" + File.separator + filename)) {
-                            outputStream.write(((TextView) findViewById(R.id.outputField)).getText().toString().trim().getBytes());
-                        }
-                    }
-                } catch (IOException e) {
-                    showError(e);
-                }
-            }
+            String filePath = t.getText().toString();
+            if(TextUtils.isEmpty(filePath)) {
+                DialogProperties properties = new DialogProperties();
+                properties.selection_mode = DialogConfigs.SINGLE_MODE;
+                properties.selection_type = DialogConfigs.FILE_SELECT;
+                properties.root = Environment.getExternalStorageDirectory();
+                properties.error_dir = Environment.getExternalStorageDirectory();
+                properties.offset = new File(DialogConfigs.DEFAULT_DIR);
+                properties.extensions = new String[] {"apk", "zip", "apks", "aspk", "apks", "xapk", "apkm"};
+                FilePickerDialog dialog = new FilePickerDialog(MainActivity.this, properties, textColor, bgColor);
+                dialog.setTitle(getString(R.string.choose_button_label));
+                dialog.setDialogSelectionListener(files -> {
+                    checkForOldAndroid(files[0], requestCode);
+                    dialog.dismiss();
+                });
+                runOnUiThread(dialog::show);
+            } else checkForOldAndroid(filePath, requestCode);
         } else {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
@@ -696,6 +738,29 @@ public class MainActivity extends Activity {
             startActivityForResult(saveFileIntent, REQUEST_CODE_SAVE_DECODED_XML_FROM_STRING);
         }
     }
+
+    public void styleAlertDialog(AlertDialog ad, String[] display) {
+        GradientDrawable border = new GradientDrawable();
+        border.setColor(bgColor); // Background color
+        border.setStroke(5, textColor); // Border width and color
+        border.setCornerRadius(16);
+
+        LayerDrawable layerDrawable = new LayerDrawable(new GradientDrawable[]{border});
+
+        runOnUiThread(() -> {
+            ad.show();
+            if(supportsAsyncTask && display != null) ad.getListView().setAdapter(new CustomArrayAdapter(this, display, textColor));
+            Window w = ad.getWindow();
+            if (w != null) {
+                w.getDecorView().getBackground().setColorFilter(new LightingColorFilter(0xFF000000, bgColor));
+                w.setBackgroundDrawable(layerDrawable);
+
+                int padding = 16;
+                w.getDecorView().setPadding(padding, padding, padding, padding);
+            }
+        });
+    }
+
 
     private Uri zipUriForRepacking;
 
@@ -785,21 +850,32 @@ public class MainActivity extends Activity {
                     }
                 }
                 if(signAPK) {
-                    final String FILE_NAME_PAST = "testkey.past";
-                    final String FILE_NAME_PRIVATE_KEY = "testkey.pk8";
-                    File signingEnvironment = new File(getFilesDir(), "signing");
-                    File pastFile = new File(signingEnvironment, FILE_NAME_PAST);
-                    File privateKeyFile = new File(signingEnvironment, FILE_NAME_PRIVATE_KEY);
-                    if (!pastFile.exists() || !privateKeyFile.exists()) {
-                        signingEnvironment.mkdir();
-                        IOUtils.copyFileFromAssets(this, FILE_NAME_PAST, pastFile);
-                        IOUtils.copyFileFromAssets(this, FILE_NAME_PRIVATE_KEY, privateKeyFile);
-                    }
                     try {
-                        PseudoApkSigner.sign(FileUtils.getInputStream(temp), FileUtils.getOutputStream(outputUri, this), pastFile, privateKeyFile);
+                        File temp2 = new File(getCacheDir(), "temp2.apk");
+                        SignUtil.signDebugKey(this, temp, temp2);
+                        FileUtils.copyFile(temp2, FileUtils.getOutputStream(outputUri, this));
                     } catch (Exception e) {
-                        showError(getString(R.string.sign_fail));
-                        FileUtils.copyFile(temp, FileUtils.getOutputStream(outputUri, this));
+                        if(Build.VERSION.SDK_INT < 30) {
+                            final String FILE_NAME_PAST = "testkey.past";
+                            final String FILE_NAME_PRIVATE_KEY = "testkey.pk8";
+                            File signingEnvironment = new File(getFilesDir(), "signing");
+                            File pastFile = new File(signingEnvironment, FILE_NAME_PAST);
+                            File privateKeyFile = new File(signingEnvironment, FILE_NAME_PRIVATE_KEY);
+                            if (!pastFile.exists() || !privateKeyFile.exists()) {
+                                signingEnvironment.mkdir();
+                                IOUtils.copyFileFromAssets(this, FILE_NAME_PAST, pastFile);
+                                IOUtils.copyFileFromAssets(this, FILE_NAME_PRIVATE_KEY, privateKeyFile);
+                            }
+                            try {
+                                PseudoApkSigner.sign(FileUtils.getInputStream(temp), FileUtils.getOutputStream(outputUri, this), pastFile, privateKeyFile);
+                            } catch (Exception e2) {
+                                showError(getString(R.string.sign_fail));
+                                FileUtils.copyFile(temp, FileUtils.getOutputStream(outputUri, this));
+                            }
+                        } else {
+                            showError(getString(R.string.sign_fail));
+                            FileUtils.copyFile(temp, FileUtils.getOutputStream(outputUri, this));
+                        }
                     }
                 }
                 toast(getString(R.string.success) + " APK");
@@ -838,36 +914,31 @@ public class MainActivity extends Activity {
         }
     }
     private void showInputDialog() {
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
+        LayoutInflater inflater = LayoutInflater.from(this);
+        LinearLayout layout = (LinearLayout) inflater.inflate(R.layout.dialoglayout, null);
         layout.setBackgroundColor(bgColor);
 
         final Spinner spinner = new Spinner(this);
         spinner.setBackgroundColor(bgColor);
         String[] options = {"Any attribute", "application", "meta-data", "activity", "receiver"};
-        ArrayAdapter<CharSequence> adapter = CustomArrayAdapter.createFromResource(this,
-                R.array.options_array, android.R.layout.simple_spinner_item);
+        ArrayAdapter<CharSequence> adapter = CustomArrayAdapter.createFromResource(this, R.array.options_array, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
+            spinner.getPopupBackground().setColorFilter(new LightingColorFilter(0xFF000000, bgColor));
 
-        final EditText inputField = new EditText(this);
+        TextView replacementField = layout.findViewById(R.id.replacementField);
+        TextView inputField = layout.findViewById(R.id.searchField);
         inputField.setTextColor(textColor);
         inputField.setHintTextColor(textColor);
-        inputField.setHint("Enter search query");
-
-        final EditText replacementField = new EditText(this);
         replacementField.setTextColor(textColor);
         replacementField.setHintTextColor(textColor);
-        replacementField.setHint("Enter replacement text");
-
+        inputField.setHint(R.string.enter_search_query);
+        replacementField.setHint(R.string.enter_replacement_text);
         layout.addView(spinner);
-        layout.addView(inputField);
-        layout.addView(replacementField);
-        replacementField.setVisibility(View.INVISIBLE);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(getString(R.string.merge_activities));
-        builder.setView(layout);
 
         boolean[] checkedItems = new boolean[options.length];
         ArrayList<String> selectedItems = new ArrayList<>();
@@ -878,6 +949,7 @@ public class MainActivity extends Activity {
                 selectedItems.remove(options[index]);
             }
         });
+        if(!supportsAsyncTask) builder.setView(layout);
 
         final int[] pos = new int[1];
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -917,24 +989,25 @@ public class MainActivity extends Activity {
                 EditText outputField = findViewById(R.id.outputField);
                 String outputText = outputField.getText().toString().trim();
 
-                if (pos[0] == 0) {
-                    findText(textToFind, outputText);
-                } else if (pos[0] == 1) {
-                    outputField.setText(outputText.replaceAll(textToFind, ""));
-                } else {
-                    String replacementText = replacementField.getText().toString();
-                    outputField.setText(outputText.replaceAll(textToFind, replacementText));
+                switch (pos[0]) {
+                    case 0:
+                        findText(textToFind, outputText);
+                        break;
+                    case 1:
+                        outputField.setText(outputText.replaceAll(textToFind, ""));
+                        break;
+                    case 2:
+                        String replacementText = replacementField.getText().toString();
+                        outputField.setText(outputText.replaceAll(textToFind, replacementText));
+                        break;
                 }
             }
         });
 
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-        final AlertDialog ad = builder.create();
-        ad.show();
-        if(Build.VERSION.SDK_INT > 2) ad.getListView().setAdapter(new CustomArrayAdapter(this, options, textColor));
-        try {
-            Objects.requireNonNull(ad.getWindow()).getDecorView().getBackground().setColorFilter(new LightingColorFilter(0xFF000000, bgColor));
-        } catch (NullPointerException ignored) {}
+        AlertDialog ad = builder.create();
+        if(supportsAsyncTask) ad.setView(layout,-100,-10,-10,-100);
+        styleAlertDialog(ad, options);
     }
 
     private void showError(String error) {

@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AndroidManifest Editor"
+rootProject.name = "AXML Editor"
 include(":app")
