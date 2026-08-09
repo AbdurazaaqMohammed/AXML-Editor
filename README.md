@@ -1,5 +1,15 @@
 Android app to edit AXML - Android binary XML files (AndroidManifest.xml and layout XML files) without having to decompile all resources
 
+# Note
+
+This app is outdated all features and more have been implemented in my new app [MP Manager](https://github.com/AbdurazaaqMohammed/MP-Manager) with better interface and more
+
+<p align="center">
+  <img src="https://github.com/AbdurazaaqMohammed/MP-Manager/raw/main/images/axml.png" width="200">
+  <br>
+  Improved AXML Editor in MP Manager
+</p>
+
 # Usage
 ## Decoding
 There are 3 ways to open the split APK to be merged:
