@@ -2,12 +2,12 @@ Android app to edit AXML - Android binary XML files (AndroidManifest.xml and lay
 
 # Note
 
-This app is outdated all features and more have been implemented in my new app [MP Manager](https://github.com/AbdurazaaqMohammed/MP-Manager) with better interface and more
+This app is outdated all features and more have been implemented in my new app <a href="https://github.com/AbdurazaaqMohammed/MP-Manager">MP Manager</a> with better interface and even more (Including get full resources names from resources.arsc and compile)
 
 <p align="center">
-  <img src="https://github.com/AbdurazaaqMohammed/MP-Manager/raw/main/images/axml.png" width="200">
+  <img src="https://github.com/AbdurazaaqMohammed/MP-Manager/raw/main/images/axml.png" width="250">
   <br>
-  Improved AXML Editor in MP Manager
+  Improved AXML Editor in <a href="https://github.com/AbdurazaaqMohammed/MP-Manager">MP Manager</a>
 </p>
 
 # Usage
